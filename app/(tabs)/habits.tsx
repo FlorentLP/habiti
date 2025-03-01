@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -15,6 +15,8 @@ import { useHabits } from '../../context/HabitsContext';
 import Header from '../../components/Header';
 import { Plus, CreditCard as Edit2, Trash2, X } from 'lucide-react-native';
 import CategoryBadge from '../../components/CategoryBadge';
+import { addDoc, collection, deleteDoc, doc, onSnapshot, updateDoc } from '@firebase/firestore';
+import { db } from '@/app/config/firebase';
 
 // New color palette
 const COLORS = {
@@ -26,6 +28,13 @@ const COLORS = {
   text: '#5A5A5A', // Soft dark gray for text
 };
 
+interface Habit {
+  id: string;
+  title: string;
+  category: string;
+  frequency: 'daily' | 'weekly';
+}
+
 const categories = ['Fitness', 'Mindfulness', 'Nutrition', 'Productivity', 'Learning'];
 const frequencies = [
   { label: 'Daily', value: 'daily' },
@@ -33,14 +42,27 @@ const frequencies = [
 ];
 
 export default function HabitsScreen() {
-  const { habits, addHabit, removeHabit } = useHabits();
-  
+  const [habits, setHabits] = useState<Habit[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingHabit, setEditingHabit] = useState<any>(null);
-  
   const [title, setTitle] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [frequency, setFrequency] = useState<'daily' | 'weekly'>('daily');
+
+  useEffect(() => {
+    try {
+      const unsubscribe = onSnapshot(collection(db, "habits"), (snapshot) => {
+        const newHabits: Habit[] = snapshot.docs.map((doc) => {
+          const data = doc.data() as Omit<Habit, "id">; // Ensure Firestore doesn't store `id`
+          return { id: doc.id, ...data }; // Explicitly set `id` from Firestore metadata
+        });
+        setHabits(newHabits);
+      });
+      return () => unsubscribe();
+    } catch (error) {
+      console.error("Firestore error:", error);
+    }
+  }, []);
   
   const openAddModal = () => {
     setEditingHabit(null);
@@ -57,48 +79,38 @@ export default function HabitsScreen() {
     setFrequency(habit.frequency);
     setModalVisible(true);
   };
-  
-  const handleSaveHabit = () => {
+
+  const handleSaveHabit = async () => {
     if (!title.trim()) {
       Alert.alert('Error', 'Please enter a habit name');
       return;
     }
-    
-    if (editingHabit) {
-      // Update existing habit logic would go here
-      // For now, we'll just remove the old one and add a new one
-      removeHabit(editingHabit.id);
+    try {
+      if (editingHabit) {
+        await updateDoc(doc(db, 'habits', editingHabit.id), {
+          title: title.trim(),
+          category: selectedCategory || 'Other',
+          frequency,
+        });
+      } else {
+        await addDoc(collection(db, 'habits'), {
+          title: title.trim(),
+          category: selectedCategory || 'Other',
+          frequency,
+        });
+      }
+      setModalVisible(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save habit');
     }
-    
-    addHabit({
-      title: title.trim(),
-      category: selectedCategory || 'Other',
-      frequency,
-    });
-    
-    setModalVisible(false);
   };
-  
-  const handleDeleteHabit = () => {
-    if (editingHabit) {
-      Alert.alert(
-        'Delete Habit',
-        'Are you sure you want to delete this habit?',
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: () => {
-              removeHabit(editingHabit.id);
-              setModalVisible(false);
-            },
-          },
-        ]
-      );
+
+  const handleDeleteHabit = async (id :string) => {
+    try {
+      await deleteDoc(doc(db, 'habits', id));
+      setModalVisible(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete habit');
     }
   };
 
@@ -237,7 +249,7 @@ export default function HabitsScreen() {
                 {editingHabit && (
                   <TouchableOpacity
                     style={styles.deleteButton}
-                    onPress={handleDeleteHabit}
+                    onPress={() => handleDeleteHabit(editingHabit.id)}
                   >
                     <Trash2 size={20} color="#FFFFFF" />
                     <Text style={styles.deleteButtonText}>Delete Habit</Text>
