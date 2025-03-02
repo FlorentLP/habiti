@@ -1,12 +1,29 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
-import { useHabits } from '../../context/HabitsContext';
 import Header from '../../components/Header';
 import HabitItem from '../../components/HabitItem';
 import DailyQuote from '../../components/DailyQuote';
 import ProgressCircle from '../../components/ProgressCircle';
 import { Droplets, Brain, BookOpen, Dumbbell, Briefcase } from 'lucide-react-native';
+import { useHabits } from '@/context/HabitsContext';
+import { db } from '@/app/config/firebase';
+import { collection, getDocs, query, where, addDoc, doc, updateDoc } from 'firebase/firestore';
 
+
+interface Habit {
+  id: string;
+  title: string;
+  category: string;
+  frequency: 'daily' | 'weekly';
+}
+
+interface HabitLog  {
+  id?: string;
+  habitId: string;
+  date: string;
+  completed: boolean;
+  // userId: string;
+}
 // New color palette
 const COLORS = {
   primary: '#A8D5BA', // Pastel green
@@ -18,12 +35,20 @@ const COLORS = {
 };
 
 export default function HomeScreen() {
-  const { habits, toggleCompletion, isHabitCompleted, getCompletionRate } = useHabits();
-  
-  // Get today's date in YYYY-MM-DD format
-  const today = new Date().toISOString().split('T')[0];
-  
-  // Format today's date for display
+  const { getCompletionRate } = useHabits();
+  const [habits, setHabits] = useState<Habit[]>([]);
+  const [habitLogs, setHabitLogs] = useState<Record<string, HabitLog>>({});
+
+  useEffect(() => {
+    const fetchHabits = async () => {
+      const todayHabits = await getHabitsForToday();
+      setHabits(todayHabits);
+      await ensureHabitLogsExist(todayHabits);
+    };
+    fetchHabits();
+  }, []);
+
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
   const formattedDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
@@ -32,50 +57,97 @@ export default function HomeScreen() {
 
   const getHabitIcon = (category: string) => {
     switch (category.toLowerCase()) {
-      case 'nutrition':
-        return <Droplets size={20} color={COLORS.primary} />;
-      case 'mindfulness':
-        return <Brain size={20} color={COLORS.secondary} />;
-      case 'learning':
-        return <BookOpen size={20} color="#C5A3FF" />;
-      case 'fitness':
-        return <Dumbbell size={20} color="#F8B195" />;
-      case 'productivity':
-        return <Briefcase size={20} color={COLORS.accent} />;
-      default:
-        return <Droplets size={20} color="#A0A0A0" />;
+      case 'nutrition': return <Droplets size={20} color={COLORS.primary} />;
+      case 'mindfulness': return <Brain size={20} color={COLORS.secondary} />;
+      case 'learning': return <BookOpen size={20} color="#C5A3FF" />;
+      case 'fitness': return <Dumbbell size={20} color="#F8B195" />;
+      case 'productivity': return <Briefcase size={20} color={COLORS.accent} />;
+      default: return <Droplets size={20} color="#A0A0A0" />;
     }
+  };
+
+  const getHabitsForToday = async (): Promise<Habit[]> => {
+    const todayDay = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    const habitsSnapshot = await getDocs(collection(db, 'habits'));
+    const habits: Habit[] = habitsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...(doc.data() as Omit<Habit, 'id'>),
+    }));
+    return habits.filter(habit => habit.frequency.includes('daily') || habit.frequency.includes(todayDay));
+  };
+
+  const ensureHabitLogsExist = async (habits: Habit[]) => {
+    const habitLogsRef = collection(db, 'habit_logs');
+    const logsQuery = query(habitLogsRef, where('date', '==', today));
+    const logsSnapshot = await getDocs(logsQuery);
+    const existingLogs: Record<string, HabitLog> = {};
+
+    logsSnapshot.docs.forEach(doc => {
+      const data = doc.data() as HabitLog;
+      const { id, ...rest } = data; // Extract id separately
+      existingLogs[data.habitId] = { id: doc.id, ...rest }; // Avoids duplicate id
+    });
+
+    setHabitLogs(existingLogs);
+
+    for (const habit of habits) {
+      if (!existingLogs[habit.id]) {
+        const newLog: HabitLog = {
+          habitId: habit.id,
+          date: today,
+          completed: false,
+        };
+        const docRef = await addDoc(habitLogsRef, newLog);
+
+        setHabitLogs(prev => ({
+          ...prev,
+          [habit.id]: { ...newLog, id: docRef.id }, // Now id is included
+        }));
+      }
+    }
+  };
+
+  const toggleCompletion = async (habitId: string) => {
+    const log = habitLogs[habitId];
+
+    if (!log || !log.id) return; // Vérifie que log.id existe bien
+
+    await updateDoc(doc(db, 'habit_logs', log.id), {
+      completed: !log.completed,
+    });
+
+    setHabitLogs(prev => ({
+      ...prev,
+      [habitId]: { ...log, completed: !log.completed },
+    }));
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
         <Header title="Today's Habits" subtitle={formattedDate} />
-        
         <View style={styles.progressContainer}>
           <ProgressCircle progress={getCompletionRate('day')} />
           <Text style={styles.progressText}>Daily Progress</Text>
         </View>
-        
         <DailyQuote />
-        
         <Text style={styles.sectionTitle}>Your Habits</Text>
-        
+
         {habits.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No habits added yet.</Text>
             <Text style={styles.emptySubtext}>Add your first habit to get started!</Text>
           </View>
         ) : (
-          habits.map((habit) => (
+          habits.map(habit => (
             <HabitItem
               key={habit.id}
               id={habit.id}
               title={habit.title}
               category={habit.category}
               icon={getHabitIcon(habit.category)}
-              completed={isHabitCompleted(habit.id, today)}
-              onToggle={() => toggleCompletion(habit.id, today)}
+              completed={habitLogs[habit.id]?.completed ?? false}
+              onToggle={() => toggleCompletion(habit.id)}
             />
           ))
         )}

@@ -11,7 +11,6 @@ import {
   TextInput,
   Alert
 } from 'react-native';
-import { useHabits } from '../../context/HabitsContext';
 import Header from '../../components/Header';
 import { Plus, CreditCard as Edit2, Trash2, X } from 'lucide-react-native';
 import CategoryBadge from '../../components/CategoryBadge';
@@ -45,6 +44,7 @@ export default function HabitsScreen() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingHabit, setEditingHabit] = useState<any>(null);
+
   const [title, setTitle] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [frequency, setFrequency] = useState<'daily' | 'weekly'>('daily');
