@@ -6,7 +6,6 @@ import {
   SafeAreaView, 
   ScrollView, 
   TouchableOpacity,
-  Platform,
   Modal,
   TextInput,
   Alert
@@ -16,23 +15,7 @@ import { Plus, CreditCard as Edit2, Trash2, X } from 'lucide-react-native';
 import CategoryBadge from '../../components/CategoryBadge';
 import { addDoc, collection, deleteDoc, doc, onSnapshot, updateDoc } from '@firebase/firestore';
 import { db } from '@/app/config/firebase';
-
-// New color palette
-const COLORS = {
-  primary: '#A8D5BA', // Pastel green
-  secondary: '#B3E0F2', // Soft sky blue
-  accent: '#FFDD7F', // Pale yellow
-  background: '#F4F4F9', // Off-white
-  warm: '#F1E0C6', // Light beige
-  text: '#5A5A5A', // Soft dark gray for text
-};
-
-interface Habit {
-  id: string;
-  title: string;
-  category: string;
-  frequency: 'daily' | 'weekly';
-}
+import { Habit, COLORS } from '@/context/constants';
 
 const categories = ['Fitness', 'Mindfulness', 'Nutrition', 'Productivity', 'Learning'];
 const frequencies = [

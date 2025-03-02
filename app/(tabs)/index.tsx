@@ -8,31 +8,7 @@ import { Droplets, Brain, BookOpen, Dumbbell, Briefcase } from 'lucide-react-nat
 import { useHabits } from '@/context/HabitsContext';
 import { db } from '@/app/config/firebase';
 import { collection, getDocs, query, where, addDoc, doc, updateDoc } from 'firebase/firestore';
-
-
-interface Habit {
-  id: string;
-  title: string;
-  category: string;
-  frequency: 'daily' | 'weekly';
-}
-
-interface HabitLog  {
-  id?: string;
-  habitId: string;
-  date: string;
-  completed: boolean;
-  // userId: string;
-}
-// New color palette
-const COLORS = {
-  primary: '#A8D5BA', // Pastel green
-  secondary: '#B3E0F2', // Soft sky blue
-  accent: '#FFDD7F', // Pale yellow
-  background: '#F4F4F9', // Off-white
-  warm: '#F1E0C6', // Light beige
-  text: '#5A5A5A', // Soft dark gray for text
-};
+import { Habit, HabitLog, COLORS } from '@/context/constants';
 
 export default function HomeScreen() {
   const { getCompletionRate } = useHabits();
