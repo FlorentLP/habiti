@@ -41,24 +41,30 @@ const frequencies = [
 ];
 
 export default function HabitsScreen() {
+  //la liste des habitudes
   const [habits, setHabits] = useState<Habit[]>([]);
+  // si le form est visible ou non
   const [modalVisible, setModalVisible] = useState(false);
+  //l'habitude que je modifie si j'en modifie une
   const [editingHabit, setEditingHabit] = useState<any>(null);
 
+  //ce sont les champs dynamiques du formulaire 1 state par champ
   const [title, setTitle] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [frequency, setFrequency] = useState<'daily' | 'weekly'>('daily');
 
-  useEffect(() => {
+  useEffect(() => { //s'execute au montage
     try {
+      // lorsque firestore est modifie, il appel la fonction snapshot
       const unsubscribe = onSnapshot(collection(db, "habits"), (snapshot) => {
+        // recupere chaque document de la table habits
         const newHabits: Habit[] = snapshot.docs.map((doc) => {
-          const data = doc.data() as Omit<Habit, "id">; // Ensure Firestore doesn't store `id`
-          return { id: doc.id, ...data }; // Explicitly set `id` from Firestore metadata
+          const data = doc.data() as Omit<Habit, "id">; // recupere une habit sans le champ id
+          return { id: doc.id, ...data }; // ajoute a l'habit recuperee avec l'id du document
         });
-        setHabits(newHabits);
+        setHabits(newHabits); // update l'etat locale des habitudes
       });
-      return () => unsubscribe();
+      return () => unsubscribe(); // arrete l'ecoute en temps reel du firestore si on demounte le composant
     } catch (error) {
       console.error("Firestore error:", error);
     }
