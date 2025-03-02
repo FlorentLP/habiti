@@ -15,13 +15,8 @@ import { Plus, CreditCard as Edit2, Trash2, X } from 'lucide-react-native';
 import CategoryBadge from '../../components/CategoryBadge';
 import { addDoc, collection, deleteDoc, doc, onSnapshot, updateDoc } from '@firebase/firestore';
 import { db } from '@/app/config/firebase';
-import { Habit, COLORS } from '@/context/constants';
+import { Habit,categories,frequencies, COLORS } from '@/context/constants';
 
-const categories = ['Fitness', 'Mindfulness', 'Nutrition', 'Productivity', 'Learning'];
-const frequencies = [
-  { label: 'Daily', value: 'daily' },
-  { label: 'Weekly', value: 'weekly' },
-];
 
 export default function HabitsScreen() {
   //la liste des habitudes

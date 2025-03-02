@@ -23,3 +23,17 @@ export const COLORS = {
   warm: '#F1E0C6', // Light beige
   text: '#5A5A5A', // Soft dark gray for text
 };
+
+
+export const categories = [
+  'Fitness',
+  'Mindfulness',
+  'Nutrition',
+  'Productivity',
+  'Learning'
+];
+
+export const frequencies = [
+  { label: 'Daily', value: 'daily' },
+  { label: 'Weekly', value: 'weekly' },
+];
