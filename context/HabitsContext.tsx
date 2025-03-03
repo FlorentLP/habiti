@@ -18,10 +18,6 @@ export interface HabitCompletion {
 interface HabitsContextType {
   habits: Habit[];
   completions: HabitCompletion[];
-  addHabit: (habit: Omit<Habit, 'id' | 'createdAt'>) => void;
-  removeHabit: (id: string) => void;
-  toggleCompletion: (habitId: string, date: string) => void;
-  isHabitCompleted: (habitId: string, date: string) => boolean;
   getCompletionRate: (period?: 'day' | 'week' | 'month') => number;
   getHabitsByCategory: () => Record<string, number>;
 }
@@ -39,113 +35,7 @@ export const useHabits = () => {
 export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [completions, setCompletions] = useState<HabitCompletion[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load data from AsyncStorage
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const habitsData = await AsyncStorage.getItem('habits');
-        const completionsData = await AsyncStorage.getItem('completions');
-        
-        if (habitsData) {
-          setHabits(JSON.parse(habitsData));
-        } else {
-          // Add default habits if none exist
-          const defaultHabits = [
-            {
-              id: '1',
-              title: 'Drink 8 glasses of water',
-              category: 'Nutrition',
-              frequency: 'daily',
-              createdAt: new Date().toISOString(),
-            },
-            {
-              id: '2',
-              title: 'Meditate for 10 minutes',
-              category: 'Mindfulness',
-              frequency: 'daily',
-              createdAt: new Date().toISOString(),
-            },
-            {
-              id: '3',
-              title: 'Read for 30 minutes',
-              category: 'Learning',
-              frequency: 'daily',
-              createdAt: new Date().toISOString(),
-            },
-          ] as Habit[];
-          
-          setHabits(defaultHabits);
-          await AsyncStorage.setItem('habits', JSON.stringify(defaultHabits));
-        }
-        
-        if (completionsData) {
-          setCompletions(JSON.parse(completionsData));
-        }
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setIsLoaded(true);
-      }
-    };
-    
-    loadData();
-  }, []);
-
-  // Save data to AsyncStorage whenever it changes
-  useEffect(() => {
-    if (isLoaded) {
-      AsyncStorage.setItem('habits', JSON.stringify(habits));
-    }
-  }, [habits, isLoaded]);
-
-  useEffect(() => {
-    if (isLoaded) {
-      AsyncStorage.setItem('completions', JSON.stringify(completions));
-    }
-  }, [completions, isLoaded]);
-
-  const addHabit = (habit: Omit<Habit, 'id' | 'createdAt'>) => {
-    const newHabit: Habit = {
-      ...habit,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-    setHabits((prev) => [...prev, newHabit]);
-  };
-
-  const removeHabit = (id: string) => {
-    setHabits((prev) => prev.filter((habit) => habit.id !== id));
-    setCompletions((prev) => prev.filter((completion) => completion.habitId !== id));
-  };
-
-  const toggleCompletion = (habitId: string, date: string) => {
-    const isCompleted = isHabitCompleted(habitId, date);
-    
-    if (isCompleted) {
-      // Remove completion
-      setCompletions((prev) => 
-        prev.filter((completion) => 
-          !(completion.habitId === habitId && completion.date === date)
-        )
-      );
-    } else {
-      // Add completion
-      const newCompletion: HabitCompletion = {
-        id: Date.now().toString(),
-        habitId,
-        date,
-      };
-      setCompletions((prev) => [...prev, newCompletion]);
-    }
-  };
-
-  const isHabitCompleted = (habitId: string, date: string) => {
-    return completions.some(
-      (completion) => completion.habitId === habitId && completion.date === date
-    );
-  };
 
   const getCompletionRate = (period: 'day' | 'week' | 'month' = 'day') => {
     if (habits.length === 0) return 0;
@@ -196,10 +86,6 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       value={{
         habits,
         completions,
-        addHabit,
-        removeHabit,
-        toggleCompletion,
-        isHabitCompleted,
         getCompletionRate,
         getHabitsByCategory,
       }}

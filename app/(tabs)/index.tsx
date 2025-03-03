@@ -10,15 +10,16 @@ import { db } from '@/app/config/firebase';
 import { collection, getDocs, query, where, addDoc, doc, updateDoc } from 'firebase/firestore';
 import { Habit, HabitLog, COLORS } from '@/context/constants';
 
-export default function HomeScreen() {
-  const { getCompletionRate } = useHabits();
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [habitLogs, setHabitLogs] = useState<Record<string, HabitLog>>({});
 
+export default function HomeScreen() {
+  const [habitsOfToday, setHabitOfToday] = useState<Habit[]>([]); // etat local habits of today
+  const [habitLogs, setHabitLogs] = useState<Record<string, HabitLog>>({}); //etat local de la db logs
+
+  //au mount:
   useEffect(() => {
     const fetchHabits = async () => {
       const todayHabits = await getHabitsForToday();
-      setHabits(todayHabits);
+      setHabitOfToday(todayHabits);
       await ensureHabitLogsExist(todayHabits);
     };
     fetchHabits();
@@ -49,13 +50,17 @@ export default function HomeScreen() {
       id: doc.id,
       ...(doc.data() as Omit<Habit, 'id'>),
     }));
-    return habits.filter(habit => habit.frequency.includes('daily') || habit.frequency.includes(todayDay));
+    // renvoie la liste de habits daily
+    return habits.filter(habit =>
+      habit.frequency.includes('daily') ||
+      habit.frequency.includes(todayDay) ||
+      (habit.frequency.includes('weekend') && (todayDay === 'saturday' || todayDay === 'sunday'))
+    );
   };
 
   const ensureHabitLogsExist = async (habits: Habit[]) => {
     const habitLogsRef = collection(db, 'habit_logs');
-    const logsQuery = query(habitLogsRef, where('date', '==', today));
-    const logsSnapshot = await getDocs(logsQuery);
+    const logsSnapshot = await getDocs(query(habitLogsRef, where('date', '==', today)));
     const existingLogs: Record<string, HabitLog> = {};
 
     logsSnapshot.docs.forEach(doc => {
@@ -65,7 +70,7 @@ export default function HomeScreen() {
     });
 
     setHabitLogs(existingLogs);
-
+    //pour chaque habits daujourdhui si l'habilog daujourdhui correspondant n'existe pas alors on en creer un daujourdhui
     for (const habit of habits) {
       if (!existingLogs[habit.id]) {
         const newLog: HabitLog = {
@@ -75,6 +80,7 @@ export default function HomeScreen() {
         };
         const docRef = await addDoc(habitLogsRef, newLog);
 
+        //ajoute a letat local des habits logs of today
         setHabitLogs(prev => ({
           ...prev,
           [habit.id]: { ...newLog, id: docRef.id }, // Now id is included
@@ -98,24 +104,38 @@ export default function HomeScreen() {
     }));
   };
 
+  // progression circle logic
+  const getCompletionRate = () => {
+    if (habitsOfToday.length === 0) return 0;
+
+    const completedCount = habitsOfToday.filter(habit => habitLogs[habit.id]?.completed).length;
+    return (completedCount / habitsOfToday.length) * 100;
+  };
+
+  const [progress, setProgress] = React.useState(getCompletionRate());
+
+  useEffect(() => {
+    setProgress(getCompletionRate());
+  }, [habitLogs]); // Met à jour lorsque les logs ou les habitudes du jour changent
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
         <Header title="Today's Habits" subtitle={formattedDate} />
         <View style={styles.progressContainer}>
-          <ProgressCircle progress={getCompletionRate('day')} />
+          <ProgressCircle progress={progress} />
           <Text style={styles.progressText}>Daily Progress</Text>
         </View>
         <DailyQuote />
         <Text style={styles.sectionTitle}>Your Habits</Text>
 
-        {habits.length === 0 ? (
+        {habitsOfToday.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No habits added yet.</Text>
             <Text style={styles.emptySubtext}>Add your first habit to get started!</Text>
           </View>
         ) : (
-          habits.map(habit => (
+          habitsOfToday.map(habit => (
             <HabitItem
               key={habit.id}
               id={habit.id}
