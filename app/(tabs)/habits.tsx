@@ -32,7 +32,6 @@ export default function HabitsScreen() {
   const [title, setTitle] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [frequency, setFrequency] = useState<'daily' | 'weekly'>('daily');
-  const [userId, setUserId] = useState('');
 
   const { user } = useAuth(); // Assure-toi que ton authContext a bien setUser
   const currentUserId = user?.uid; // You can also use context if you store the user in your app state
@@ -85,7 +84,6 @@ export default function HabitsScreen() {
           title: title.trim(),
           category: selectedCategory || 'Other',
           frequency,
-          userId: currentUserId,
         });
       } else {
         await addDoc(collection(db, 'habits'), {
