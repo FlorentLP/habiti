@@ -16,6 +16,8 @@ import CategoryBadge from '../../components/CategoryBadge';
 import { addDoc, collection, deleteDoc, doc, onSnapshot, updateDoc } from '@firebase/firestore';
 import { db } from '@/app/config/firebase';
 import { Habit,categories,frequencies, COLORS } from '@/context/constants';
+import { query, where } from 'firebase/firestore';
+import { useAuth } from '@/context/authContext';
 
 
 export default function HabitsScreen() {
@@ -30,11 +32,19 @@ export default function HabitsScreen() {
   const [title, setTitle] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [frequency, setFrequency] = useState<'daily' | 'weekly'>('daily');
+  const [userId, setUserId] = useState('');
+
+  const { user } = useAuth(); // Assure-toi que ton authContext a bien setUser
+  const currentUserId = user?.uid; // You can also use context if you store the user in your app state
+
 
   useEffect(() => { //s'execute au montage
     try {
+      if (!currentUserId) return; // Make sure userId is available before fetching
       // lorsque firestore est modifie, il appel la fonction snapshot
-      const unsubscribe = onSnapshot(collection(db, "habits"), (snapshot) => {
+      const unsubscribe = onSnapshot(
+        query(collection(db, "habits"), where("userId", "==", user.uid)),
+        (snapshot) => {
         // recupere chaque document de la table habits
         const newHabits: Habit[] = snapshot.docs.map((doc) => {
           const data = doc.data() as Omit<Habit, "id">; // recupere une habit sans le champ id
@@ -46,7 +56,7 @@ export default function HabitsScreen() {
     } catch (error) {
       console.error("Firestore error:", error);
     }
-  }, []);
+  }, [currentUserId]);// Re-run effect if userId changes
   
   const openAddModal = () => {
     setEditingHabit(null);
@@ -75,12 +85,14 @@ export default function HabitsScreen() {
           title: title.trim(),
           category: selectedCategory || 'Other',
           frequency,
+          userId: currentUserId,
         });
       } else {
         await addDoc(collection(db, 'habits'), {
           title: title.trim(),
           category: selectedCategory || 'Other',
           frequency,
+          userId: currentUserId,
         });
       }
       setModalVisible(false);
