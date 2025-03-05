@@ -21,11 +21,9 @@ export default function SettingsScreen() {
       setLoading(true); // Set loading state to true while waiting for signOut
       await signOut(auth); // Wait for the sign-out process
       setUser(null); // Set the user to null after sign out
-      console.log("✅ Déconnexion réussie !");
       setLoading(false); // Set loading state to false once sign out is done
       router.replace("/login"); // Redirect to login screen after sign out
     } catch (error) {
-      console.error("❌ Erreur de déconnexion :", error);
       setLoading(false); // Ensure to set loading to false in case of an error
     }
   };

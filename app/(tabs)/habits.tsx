@@ -1,23 +1,20 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  SafeAreaView, 
-  ScrollView, 
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  Alert
-} from 'react-native';
-import Header from '../../components/Header';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
 import { Plus, CreditCard as Edit2, Trash2, X } from 'lucide-react-native';
-import CategoryBadge from '../../components/CategoryBadge';
-import { addDoc, collection, deleteDoc, doc, onSnapshot, updateDoc } from '@firebase/firestore';
+import DateTimePicker from '@react-native-community/datetimepicker';
+
+
+// Firebase
+import { addDoc, collection, deleteDoc, doc, onSnapshot, updateDoc, query, where } from 'firebase/firestore';
 import { db } from '@/app/config/firebase';
-import { Habit,categories,frequencies, COLORS } from '@/context/constants';
-import { query, where } from 'firebase/firestore';
+
+// Context & Constants
 import { useAuth } from '@/context/authContext';
+import { Habit, categories, frequencies, COLORS } from '@/context/constants';
+
+// Components
+import Header from '../../components/Header';
+import CategoryBadge from '../../components/CategoryBadge';
 
 
 export default function HabitsScreen() {
@@ -36,6 +33,11 @@ export default function HabitsScreen() {
   const { user } = useAuth(); // Assure-toi que ton authContext a bien setUser
   const currentUserId = user?.uid; // You can also use context if you store the user in your app state
 
+  const [time, setTime] = useState(new Date());
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const sortedHabits = useMemo(() => {
+    return [...habits].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+  }, [habits]);
 
   useEffect(() => { //s'execute au montage
     try {
@@ -56,22 +58,24 @@ export default function HabitsScreen() {
       console.error("Firestore error:", error);
     }
   }, [currentUserId]);// Re-run effect if userId changes
-  
-  const openAddModal = () => {
+
+  const openAddModal = useCallback(() => {
     setEditingHabit(null);
     setTitle('');
     setSelectedCategory('');
     setFrequency('daily');
     setModalVisible(true);
-  };
-  
-  const openEditModal = (habit: any) => {
+    setTime(new Date());
+  }, []);
+
+  const openEditModal = useCallback((habit: Habit) => {
     setEditingHabit(habit);
     setTitle(habit.title);
     setSelectedCategory(habit.category);
     setFrequency(habit.frequency);
     setModalVisible(true);
-  };
+    setTime(new Date(habit.time));
+  }, []);
 
   const handleSaveHabit = async () => {
     if (!title.trim()) {
@@ -84,6 +88,7 @@ export default function HabitsScreen() {
           title: title.trim(),
           category: selectedCategory || 'Other',
           frequency,
+          time: time.toISOString(),
         });
       } else {
         await addDoc(collection(db, 'habits'), {
@@ -91,11 +96,13 @@ export default function HabitsScreen() {
           category: selectedCategory || 'Other',
           frequency,
           userId: currentUserId,
+          time: time.toISOString(),
         });
       }
       setModalVisible(false);
     } catch (error) {
-      Alert.alert('Error', 'Failed to save habit');
+      console.error("Firebase Error:", error);
+      Alert.alert('Error', 'Failed to save habit. Please try again later.');
     }
   };
 
@@ -108,20 +115,28 @@ export default function HabitsScreen() {
     }
   };
 
+  const handleTimeChange = (event: any, selectedTime?: Date) => {
+    setShowTimePicker(false);
+    if (selectedTime) {
+      setTime(selectedTime);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
         <Header title="My Habits" subtitle="Manage your habits" />
-        
+
         {habits.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No habits added yet</Text>
             <Text style={styles.emptySubtext}>Add your first habit to get started!</Text>
           </View>
         ) : (
-          habits.map((habit) => (
-            <TouchableOpacity 
-              key={habit.id} 
+          sortedHabits
+            .map((habit) => (
+            <TouchableOpacity
+              key={habit.id}
               style={styles.habitCard}
               onPress={() => openEditModal(habit)}
             >
@@ -129,7 +144,7 @@ export default function HabitsScreen() {
                 <Text style={styles.habitTitle}>{habit.title}</Text>
                 <Edit2 size={18} color={COLORS.primary} />
               </View>
-              
+
               <View style={styles.habitDetails}>
                 <CategoryBadge category={habit.category} selected />
                 <View style={styles.frequencyBadge}>
@@ -137,16 +152,19 @@ export default function HabitsScreen() {
                     {habit.frequency === 'daily' ? 'Daily' : 'Weekly'}
                   </Text>
                 </View>
+                <Text style={styles.habitTime}>
+                  {new Date(habit.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
               </View>
             </TouchableOpacity>
           ))
         )}
       </ScrollView>
-      
+
       <TouchableOpacity style={styles.fab} onPress={openAddModal}>
         <Plus size={24} color="#FFFFFF" />
       </TouchableOpacity>
-      
+
       <Modal
         animationType="slide"
         transparent={true}
@@ -159,14 +177,14 @@ export default function HabitsScreen() {
               <Text style={styles.modalTitle}>
                 {editingHabit ? 'Edit Habit' : 'Add New Habit'}
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setModalVisible(false)}
               >
                 <X size={24} color={COLORS.text} />
               </TouchableOpacity>
             </View>
-            
+
             <ScrollView style={styles.modalBody}>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Habit Name</Text>
@@ -178,7 +196,7 @@ export default function HabitsScreen() {
                   placeholderTextColor="#AAAAAA"
                 />
               </View>
-              
+
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Category</Text>
                 <View style={styles.categoriesContainer}>
@@ -203,7 +221,7 @@ export default function HabitsScreen() {
                   ))}
                 </View>
               </View>
-              
+
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Frequency</Text>
                 <View style={styles.frequencyContainer}>
@@ -228,7 +246,23 @@ export default function HabitsScreen() {
                   ))}
                 </View>
               </View>
-              
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Heure</Text>
+                <TouchableOpacity onPress={() => setShowTimePicker(true)} style={styles.input}>
+                  <Text>{time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                </TouchableOpacity>
+                {showTimePicker && (
+                  <DateTimePicker
+                    value={time}
+                    mode="time"
+                    is24Hour={true}
+                    display="spinner"
+                    onChange={handleTimeChange}
+                  />
+                )}
+              </View>
+
               <View style={styles.buttonContainer}>
                 <TouchableOpacity
                   style={[styles.button, !title.trim() && styles.disabledButton]}
@@ -239,7 +273,7 @@ export default function HabitsScreen() {
                     {editingHabit ? 'Update Habit' : 'Create Habit'}
                   </Text>
                 </TouchableOpacity>
-                
+
                 {editingHabit && (
                   <TouchableOpacity
                     style={styles.deleteButton}
@@ -476,5 +510,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFFFFF',
     marginLeft: 8,
+  },
+  habitTime: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 14,
+    color: COLORS.text,
+    opacity: 0.8,
   },
 });

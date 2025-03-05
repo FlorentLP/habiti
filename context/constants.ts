@@ -4,7 +4,8 @@ export interface Habit {
   title: string;
   category: string;
   frequency: 'daily' | 'weekly';
-  // userId: string;
+  userId: string;
+  time: string;
 }
 
 export interface HabitLog {
@@ -12,7 +13,7 @@ export interface HabitLog {
   habitId: string;
   date: string;
   completed: boolean;
-  // userId: string;
+  userId: string;
 }
 
 export const COLORS = {

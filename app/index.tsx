@@ -10,10 +10,8 @@ export default function Index() {
     if (loading) return; // Attendre que Firebase charge
 
     if (user) {
-      console.log("✅ Redirection vers /tabs");
       router.replace("/(tabs)");
     } else {
-      console.log("❌ Redirection vers /login");
       router.replace("/login");
     }
   }, [user, loading]); // Réagir aux changements de `user` et `loading`
