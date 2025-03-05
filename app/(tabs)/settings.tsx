@@ -1,45 +1,55 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, Switch, TouchableOpacity, Alert, Platform } from 'react-native';
 import Header from '../../components/Header';
 import { useHabits } from '../../context/HabitsContext';
 import { Bell, Moon, Sun, CircleHelp, LogOut, Trash2 } from 'lucide-react-native';
-
-// New color palette
-const COLORS = {
-  primary: '#A8D5BA', // Pastel green
-  secondary: '#B3E0F2', // Soft sky blue
-  accent: '#FFDD7F', // Pale yellow
-  background: '#F4F4F9', // Off-white
-  warm: '#F1E0C6', // Light beige
-  text: '#5A5A5A', // Soft dark gray for text
-};
+import { signOut } from "firebase/auth";
+import { auth } from "../config/firebase";
+import { COLORS } from '@/context/constants';
+import { useRouter } from 'expo-router';
+import { useAuth } from '@/context/authContext';
 
 export default function SettingsScreen() {
   const { habits } = useHabits();
-  
+  const { user, setUser } = useAuth(); // Assure-toi que ton authContext a bien setUser
+  const router = useRouter();
+
+  const [loading, setLoading] = useState(false); // New state to handle the loading during logout
+
+  const handleLogout = async () => {
+    try {
+      setLoading(true); // Set loading state to true while waiting for signOut
+      await signOut(auth); // Wait for the sign-out process
+      setUser(null); // Set the user to null after sign out
+      console.log("✅ Déconnexion réussie !");
+      setLoading(false); // Set loading state to false once sign out is done
+      router.replace("/login"); // Redirect to login screen after sign out
+    } catch (error) {
+      console.error("❌ Erreur de déconnexion :", error);
+      setLoading(false); // Ensure to set loading to false in case of an error
+    }
+  };
+
+  useEffect(() => {
+    if (user === null) {
+      router.replace("/login"); // Redirect to login if the user is null
+    }
+  }, [user, router]);
+
+  // Other states and functions like darkMode, notifications, etc.
   const [darkMode, setDarkMode] = React.useState(false);
   const [notifications, setNotifications] = React.useState(true);
-  
+
   const toggleDarkMode = () => setDarkMode(previousState => !previousState);
   const toggleNotifications = () => setNotifications(previousState => !previousState);
-  
+
   const handleResetData = () => {
     Alert.alert(
       'Reset All Data',
       'Are you sure you want to reset all your habits and progress? This action cannot be undone.',
       [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Reset',
-          style: 'destructive',
-          onPress: () => {
-            // Reset data logic would go here
-            Alert.alert('Data Reset', 'All your data has been reset.');
-          },
-        },
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Reset', style: 'destructive', onPress: () => Alert.alert('Data Reset', 'All your data has been reset.') },
       ]
     );
   };
@@ -48,7 +58,7 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
         <Header title="Settings" subtitle="Customize your experience" />
-        
+
         <View style={styles.profileContainer}>
           <View style={styles.profileImagePlaceholder}>
             <Text style={styles.profileInitials}>JD</Text>
@@ -58,7 +68,7 @@ export default function SettingsScreen() {
             <Text style={styles.profileEmail}>john.doe@example.com</Text>
           </View>
         </View>
-        
+
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{habits.length}</Text>
@@ -75,10 +85,10 @@ export default function SettingsScreen() {
             <Text style={styles.statLabel}>Completion</Text>
           </View>
         </View>
-        
+
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Preferences</Text>
-          
+
           <View style={styles.settingItem}>
             <View style={styles.settingIconContainer}>
               <Bell size={20} color={COLORS.primary} />
@@ -91,7 +101,7 @@ export default function SettingsScreen() {
               thumbColor="#FFFFFF"
             />
           </View>
-          
+
           <View style={styles.settingItem}>
             <View style={styles.settingIconContainer}>
               {darkMode ? (
@@ -109,25 +119,29 @@ export default function SettingsScreen() {
             />
           </View>
         </View>
-        
+
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Support</Text>
-          
+
           <TouchableOpacity style={styles.settingButton}>
             <View style={styles.settingIconContainer}>
               <CircleHelp size={20} color={COLORS.primary} />
             </View>
             <Text style={styles.settingLabel}>Help & Support</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.settingButton}>
+
+          <TouchableOpacity
+            style={styles.settingButton}
+            onPress={handleLogout}
+            disabled={loading} // Disable the button while loading
+          >
             <View style={styles.settingIconContainer}>
               <LogOut size={20} color={COLORS.primary} />
             </View>
-            <Text style={styles.settingLabel}>Log Out</Text>
+            <Text style={styles.settingLabel}>{loading ? 'Logging out...' : 'Log Out'}</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={[styles.settingButton, styles.dangerButton]}
             onPress={handleResetData}
           >
@@ -137,7 +151,7 @@ export default function SettingsScreen() {
             <Text style={[styles.settingLabel, styles.dangerText]}>Reset All Data</Text>
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.versionContainer}>
           <Text style={styles.versionText}>Version 1.0.0</Text>
         </View>
@@ -145,7 +159,6 @@ export default function SettingsScreen() {
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
