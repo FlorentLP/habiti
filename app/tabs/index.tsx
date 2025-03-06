@@ -54,16 +54,22 @@ export default function HomeScreen() {
       query(collection(db, 'habits'), where('userId', '==', currentUserId)) // Filtre par userId
     );
 
-    const habits: Habit[] = habitsSnapshot.docs.map(doc => ({
+    let habits: Habit[] = habitsSnapshot.docs.map(doc => ({
       id: doc.id,
       ...(doc.data() as Omit<Habit, 'id'>),
     }));
 
-    return habits.filter(habit =>
+    // Filtrer les habitudes selon leur fréquence
+    habits = habits.filter(habit =>
       habit.frequency.includes('daily') ||
       habit.frequency.includes(todayDay) ||
       (habit.frequency.includes('weekend') && (todayDay === 'saturday' || todayDay === 'sunday'))
     );
+
+    // Trier les habitudes par heure (time)
+    habits.sort((a, b) => (a.time > b.time ? 1 : -1));
+
+    return habits;
   };
 
   const ensureHabitLogsExist = async (habits: Habit[]) => {
@@ -130,7 +136,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     setProgress(getCompletionRate());
-  }, [habitLogs]); // Met à jour lorsque les logs ou les habitudes du jour changent
+  }, [habitLogs, habitsOfToday]); // Met à jour lorsque les logs ou les habitudes du jour changent
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -149,17 +155,19 @@ export default function HomeScreen() {
             <Text style={styles.emptySubtext}>Add your first habit to get started!</Text>
           </View>
         ) : (
-          habitsOfToday.map(habit => (
-            <HabitItem
-              key={habit.id}
-              id={habit.id}
-              title={habit.title}
-              category={habit.category}
-              icon={getHabitIcon(habit.category)}
-              completed={habitLogs[habit.id]?.completed ?? false}
-              onToggle={() => toggleCompletion(habit.id)}
-            />
-          ))
+          habitsOfToday
+            .sort((a, b) => (a.time > b.time ? 1 : -1)) // Tri côté frontend au cas où
+            .map(habit => (
+              <HabitItem
+                key={habit.id}
+                id={habit.id}
+                title={`${habit.title} - ${new Date(habit.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                category={habit.category}
+                icon={getHabitIcon(habit.category)}
+                completed={habitLogs[habit.id]?.completed ?? false}
+                onToggle={() => toggleCompletion(habit.id)}
+              />
+            ))
         )}
       </ScrollView>
     </SafeAreaView>
