@@ -89,7 +89,7 @@ export default function HomeScreen() {
           habitId: habit.id,
           date: today,
           completed: false,
-          userId: currentUserId, // Assure-toi qu'il est bien défini
+          userId: currentUserId,
         };
 
         const docRef = await addDoc(habitLogsRef, newLog);

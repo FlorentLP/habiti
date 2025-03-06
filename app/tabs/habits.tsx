@@ -516,5 +516,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text,
     opacity: 0.8,
+    marginLeft: 8,
   },
 });

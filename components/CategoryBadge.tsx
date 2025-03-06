@@ -61,8 +61,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
-    marginRight: 8,
-    marginBottom: 8,
   },
   text: {
     fontFamily: 'Poppins-Medium',
