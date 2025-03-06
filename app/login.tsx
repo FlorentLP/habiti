@@ -24,7 +24,7 @@ export default function Login() {
   // ✅ Redirection après montage du composant si l'utilisateur est déjà connecté
   useEffect(() => {
     if (user) {
-      router.replace("/tabs");
+      router.replace("/tabs/index");
     }
   }, [user]); // Se déclenche uniquement si `user` change
 
@@ -32,7 +32,7 @@ export default function Login() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("✅ Connexion réussie :", userCredential.user);
-      router.replace("/tabs");
+      router.replace("/tabs/index");
     } catch (error) {
       console.error("❌ Erreur de connexion :", error);
       setError("Identifiants incorrects");
