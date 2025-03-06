@@ -10,7 +10,7 @@ export default function Index() {
     if (loading) return; // Attendre que Firebase charge
 
     if (user) {
-      router.replace("/(tabs)");
+      router.replace("/tabs");
     } else {
       router.replace("/login");
     }

@@ -5,15 +5,18 @@ import HabitItem from '../../components/HabitItem';
 import DailyQuote from '../../components/DailyQuote';
 import ProgressCircle from '../../components/ProgressCircle';
 import { Droplets, Brain, BookOpen, Dumbbell, Briefcase } from 'lucide-react-native';
-import { useHabits } from '@/context/HabitsContext';
-import { db } from '@/app/config/firebase';
+import { db } from '@/config/firebase';
 import { collection, getDocs, query, where, addDoc, doc, updateDoc } from 'firebase/firestore';
 import { Habit, HabitLog, COLORS } from '@/context/constants';
+import { useAuth } from '@/context/authContext';
 
 
 export default function HomeScreen() {
   const [habitsOfToday, setHabitOfToday] = useState<Habit[]>([]); // etat local habits of today
   const [habitLogs, setHabitLogs] = useState<Record<string, HabitLog>>({}); //etat local de la db logs
+  const { user } = useAuth(); // Assure-toi que ton authContext a bien setUser
+  const currentUserId = user?.uid; // You can also use context if you store the user in your app state
+
 
   //au mount:
   useEffect(() => {
@@ -44,13 +47,18 @@ export default function HomeScreen() {
   };
 
   const getHabitsForToday = async (): Promise<Habit[]> => {
+    if (!currentUserId) return []; // Vérifier que l'utilisateur est bien défini
+
     const todayDay = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-    const habitsSnapshot = await getDocs(collection(db, 'habits'));
+    const habitsSnapshot = await getDocs(
+      query(collection(db, 'habits'), where('userId', '==', currentUserId)) // Filtre par userId
+    );
+
     const habits: Habit[] = habitsSnapshot.docs.map(doc => ({
       id: doc.id,
       ...(doc.data() as Omit<Habit, 'id'>),
     }));
-    // renvoie la liste de habits daily
+
     return habits.filter(habit =>
       habit.frequency.includes('daily') ||
       habit.frequency.includes(todayDay) ||
@@ -59,35 +67,41 @@ export default function HomeScreen() {
   };
 
   const ensureHabitLogsExist = async (habits: Habit[]) => {
+    if (!currentUserId) return;
+
     const habitLogsRef = collection(db, 'habit_logs');
-    const logsSnapshot = await getDocs(query(habitLogsRef, where('date', '==', today)));
+    const logsSnapshot = await getDocs(
+      query(habitLogsRef, where('date', '==', today), where('userId', '==', currentUserId)) // Filtre par userId
+    );
+
     const existingLogs: Record<string, HabitLog> = {};
 
     logsSnapshot.docs.forEach(doc => {
       const data = doc.data() as HabitLog;
-      const { id, ...rest } = data; // Extract id separately
-      existingLogs[data.habitId] = { id: doc.id, ...rest }; // Avoids duplicate id
+      existingLogs[data.habitId] = { id: doc.id, ...data };
     });
 
     setHabitLogs(existingLogs);
-    //pour chaque habits daujourdhui si l'habilog daujourdhui correspondant n'existe pas alors on en creer un daujourdhui
+
     for (const habit of habits) {
       if (!existingLogs[habit.id]) {
         const newLog: HabitLog = {
           habitId: habit.id,
           date: today,
           completed: false,
+          userId: currentUserId, // Assure-toi qu'il est bien défini
         };
+
         const docRef = await addDoc(habitLogsRef, newLog);
 
-        //ajoute a letat local des habits logs of today
         setHabitLogs(prev => ({
           ...prev,
-          [habit.id]: { ...newLog, id: docRef.id }, // Now id is included
+          [habit.id]: { ...newLog, id: docRef.id },
         }));
       }
     }
   };
+
 
   const toggleCompletion = async (habitId: string) => {
     const log = habitLogs[habitId];

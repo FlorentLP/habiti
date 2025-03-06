@@ -4,7 +4,7 @@ import Header from '../../components/Header';
 import { useHabits } from '../../context/HabitsContext';
 import { Bell, Moon, Sun, CircleHelp, LogOut, Trash2 } from 'lucide-react-native';
 import { signOut } from "firebase/auth";
-import { auth } from "../config/firebase";
+import { auth } from "@/config/firebase";
 import { COLORS } from '@/context/constants';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/authContext';

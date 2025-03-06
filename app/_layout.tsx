@@ -34,7 +34,7 @@ export default function RootLayout() {
     <AuthProvider>
       <HabitsProvider>
         <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="tabs" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ title: "Connexion" }} />
           <Stack.Screen name="+not-found" options={{ title: "Oops!" }} />
         </Stack>
