@@ -10,7 +10,7 @@ import { db } from '@/config/firebase';
 
 // Context & Constants
 import { useAuth } from '@/context/authContext';
-import { Habit, categories, frequencies, COLORS } from '@/context/constants';
+import { Habit, categories, DAYS, COLORS } from '@/context/constants';
 
 // Components
 import Header from '../../components/Header';
@@ -28,7 +28,7 @@ export default function HabitsScreen() {
   //ce sont les champs dynamiques du formulaire 1 state par champ
   const [title, setTitle] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [frequency, setFrequency] = useState<'daily' | 'weekly'>('daily');
+  const [selectedDays, setSelectedDays] = useState<boolean[]>([true, true, true, true, true, true, true]);
 
   const { user } = useAuth(); // Assure-toi que ton authContext a bien setUser
   const currentUserId = user?.uid; // You can also use context if you store the user in your app state
@@ -63,7 +63,7 @@ export default function HabitsScreen() {
     setEditingHabit(null);
     setTitle('');
     setSelectedCategory('');
-    setFrequency('daily');
+    setSelectedDays([true, true, true, true, true, true, true]);
     setModalVisible(true);
     setTime(new Date());
   }, []);
@@ -72,7 +72,7 @@ export default function HabitsScreen() {
     setEditingHabit(habit);
     setTitle(habit.title);
     setSelectedCategory(habit.category);
-    setFrequency(habit.frequency);
+    setSelectedDays(habit.selectedDays);
     setModalVisible(true);
     setTime(new Date(habit.time));
   }, []);
@@ -87,14 +87,14 @@ export default function HabitsScreen() {
         await updateDoc(doc(db, 'habits', editingHabit.id), {
           title: title.trim(),
           category: selectedCategory || 'Other',
-          frequency,
+          selectedDays: selectedDays,
           time: time.toISOString(),
         });
       } else {
         await addDoc(collection(db, 'habits'), {
           title: title.trim(),
           category: selectedCategory || 'Other',
-          frequency,
+          selectedDays: selectedDays,
           userId: currentUserId,
           time: time.toISOString(),
         });
@@ -122,6 +122,12 @@ export default function HabitsScreen() {
     }
   };
 
+  const toggleDay = (index: number) => {
+    const newSelectedDays = [...selectedDays];
+    newSelectedDays[index] = !newSelectedDays[index];
+    setSelectedDays(newSelectedDays);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -147,9 +153,11 @@ export default function HabitsScreen() {
 
               <View style={styles.habitDetails}>
                 <CategoryBadge category={habit.category} selected />
-                <View style={styles.frequencyBadge}>
-                  <Text style={styles.frequencyText}>
-                    {habit.frequency === 'daily' ? 'Daily' : 'Weekly'}
+                <View style={styles.selectedDaysBadge}>
+                  <Text style={styles.selectedDaysText}>
+                    {DAYS.map((day, index) =>
+                      habit.selectedDays[index] ? `✅ ${day.substring(0, 2)} ` : `❌ ${day.substring(0, 2)} `
+                    ).join(' ')}
                   </Text>
                 </View>
                 <Text style={styles.habitTime}>
@@ -223,24 +231,22 @@ export default function HabitsScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Frequency</Text>
-                <View style={styles.frequencyContainer}>
-                  {frequencies.map((item) => (
+                <Text style={styles.label}>Jours de la semaine</Text>
+                <View style={styles.daysContainer}>
+                  {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((day, index) => (
                     <TouchableOpacity
-                      key={item.value}
+                      key={index}
                       style={[
-                        styles.frequencyButton,
-                        frequency === item.value && styles.selectedFrequencyButton,
+                        styles.dayButton,
+                        selectedDays[index] && styles.selectedDayButton
                       ]}
-                      onPress={() => setFrequency(item.value as 'daily' | 'weekly')}
+                      onPress={() => toggleDay(index)}
                     >
-                      <Text
-                        style={[
-                          styles.frequencyButtonText,
-                          frequency === item.value && styles.selectedFrequencyButtonText,
-                        ]}
-                      >
-                        {item.label}
+                      <Text style={[
+                        styles.dayButtonText,
+                        selectedDays[index] && styles.selectedDayButtonText
+                      ]}>
+                        {day}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -345,6 +351,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  selectedDaysBadge: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 4,
+    padding: 4,
+    marginLeft: 8,
+  },
+  selectedDaysText: {
+    color: 'white',
+    fontSize: 12,
+  },
   habitTitle: {
     fontFamily: 'Poppins-SemiBold',
     fontSize: 18,
@@ -353,18 +369,6 @@ const styles = StyleSheet.create({
   habitDetails: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  frequencyBadge: {
-    backgroundColor: COLORS.secondary + '30',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    marginLeft: 8,
-  },
-  frequencyText: {
-    fontFamily: 'Poppins-Medium',
-    fontSize: 12,
-    color: COLORS.text,
   },
   fab: {
     position: 'absolute',
@@ -454,31 +458,6 @@ const styles = StyleSheet.create({
   selectedCategoryButtonText: {
     color: '#FFFFFF',
   },
-  frequencyContainer: {
-    flexDirection: 'row',
-  },
-  frequencyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.background,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginRight: 12,
-  },
-  selectedFrequencyButton: {
-    backgroundColor: COLORS.primary + '20',
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-  },
-  frequencyButtonText: {
-    fontFamily: 'Poppins-Medium',
-    fontSize: 14,
-    color: COLORS.text,
-  },
-  selectedFrequencyButtonText: {
-    color: COLORS.primary,
-  },
   buttonContainer: {
     marginTop: 8,
   },
@@ -518,4 +497,30 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     marginLeft: 8,
   },
+  daysContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  dayButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    marginHorizontal: 5,
+  },
+  selectedDayButton: {
+    backgroundColor: COLORS.primary,
+  },
+  dayButtonText: {
+    fontSize: 16,
+    color: COLORS.primary,
+  },
+  selectedDayButtonText: {
+    color: 'white',
+  },
+
 });

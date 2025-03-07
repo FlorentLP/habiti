@@ -49,7 +49,9 @@ export default function HomeScreen() {
   const getHabitsForToday = async (): Promise<Habit[]> => {
     if (!currentUserId) return []; // Vérifier que l'utilisateur est bien défini
 
-    const todayDay = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    const todayDay = new Date().getDay(); // Récupère l'indice du jour (0 = dimanche, 1 = lundi, etc.)
+    const adjustedDay = (todayDay === 0) ? 6 : todayDay - 1; // Si c'est dimanche (0), on le convertit en samedi (6), sinon on décrémente de 1
+
     const habitsSnapshot = await getDocs(
       query(collection(db, 'habits'), where('userId', '==', currentUserId)) // Filtre par userId
     );
@@ -60,11 +62,8 @@ export default function HomeScreen() {
     }));
 
     // Filtrer les habitudes selon leur fréquence
-    habits = habits.filter(habit =>
-      habit.frequency.includes('daily') ||
-      habit.frequency.includes(todayDay) ||
-      (habit.frequency.includes('weekend') && (todayDay === 'saturday' || todayDay === 'sunday'))
-    );
+    habits = habits.filter(habit => habit.selectedDays[adjustedDay]);
+
 
     // Trier les habitudes par heure (time)
     habits.sort((a, b) => (a.time > b.time ? 1 : -1));

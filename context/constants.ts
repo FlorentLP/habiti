@@ -3,10 +3,12 @@ export interface Habit {
   id: string;
   title: string;
   category: string;
-  frequency: 'daily' | 'weekly';
+  selectedDays: [boolean];
   userId: string;
   time: string;
 }
+
+export const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export interface HabitLog {
   id?: string;
@@ -32,9 +34,4 @@ export const categories = [
   'Nutrition',
   'Productivity',
   'Learning'
-];
-
-export const frequencies = [
-  { label: 'Daily', value: 'daily' },
-  { label: 'Weekly', value: 'weekly' },
 ];
