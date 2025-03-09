@@ -9,6 +9,7 @@ import {
   Platform,
   TouchableOpacity
 } from 'react-native';
+import { useHabits } from '../../context/HabitsContext';
 import Header from '../../components/Header';
 import CategoryBadge from '../../components/CategoryBadge';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
@@ -16,11 +17,12 @@ import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 type Period = 'week' | 'month';
 
 export default function ProgressScreen() {
+  const { habits, completions, getHabitsByCategory } = useHabits();
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
   
-/*  const categoryData = getHabitsByCategory();
-  const categories = Object.keys(categoryData);*/
+  const categoryData = getHabitsByCategory();
+  const categories = Object.keys(categoryData);
   
   const periods: { label: string; value: Period }[] = [
     { label: 'Weekly', value: 'week' },
@@ -65,27 +67,27 @@ export default function ProgressScreen() {
     return dates;
   };
   
-/*  const periodDates = generateDates();
+  const periodDates = generateDates();
   
   // Format date to YYYY-MM-DD for comparison
   const formatDateForComparison = (date: Date) => {
     return date.toISOString().split('T')[0];
   };
-  */
-/*  // Get completion count for a specific date
+
+  // Get completion count for a specific date
   const getCompletionCount = (date: Date) => {
     const dateString = formatDateForComparison(date);
     return completions.filter(completion => completion.date === dateString).length;
-  };*/
+  };
   
-/*  // Get max completion count for the current period
+  // Get max completion count for the current period
   const getMaxCompletionCount = () => {
     return Math.max(
       ...periodDates.map(date => getCompletionCount(date)),
       1 // Ensure we don't divide by zero
     );
   };
-  *//*
+
   // Calculate the intensity of the color based on completion count
   const getColorIntensity = (count: number) => {
     const maxCount = getMaxCompletionCount();
@@ -138,7 +140,7 @@ export default function ProgressScreen() {
   const getDayName = (date: Date) => {
     return date.toLocaleDateString('en-US', { weekday: 'short' });
   };
-*/
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -166,7 +168,7 @@ export default function ProgressScreen() {
           ))}
         </View>
         
-        {/*<View style={styles.calendarContainer}>
+        <View style={styles.calendarContainer}>
           <View style={styles.calendarHeader}>
             <TouchableOpacity onPress={goToPreviousPeriod} style={styles.navigationButton}>
               <ChevronLeft size={24} color="#6C63FF" />
@@ -208,7 +210,7 @@ export default function ProgressScreen() {
             </View>
           ) : (
             <View style={styles.monthContainer}>
-               Day headers (Sun-Sat)
+              {/* Day headers (Sun-Sat) */}
               <View style={styles.weekdayHeader}>
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
                   <Text key={day} style={styles.weekdayText}>{day}</Text>
@@ -216,12 +218,12 @@ export default function ProgressScreen() {
               </View>
               
               <View style={styles.monthGrid}>
-                 Add empty cells for days before the 1st of the month
+                {/* Add empty cells for days before the 1st of the month */}
                 {Array.from({ length: periodDates[0].getDay() }).map((_, index) => (
                   <View key={`empty-${index}`} style={styles.emptyCell} />
                 ))}
                 
-                 Actual days of the month
+                {/* Actual days of the month */}
                 {periodDates.map((date) => {
                   const completionCount = getCompletionCount(date);
                   const intensity = getColorIntensity(completionCount);
@@ -267,7 +269,7 @@ export default function ProgressScreen() {
               <Text style={styles.emptyText}>No habits added yet</Text>
             )}
           </View>
-        </View>*/}
+        </View>
         
         <View style={styles.tipsContainer}>
           <Text style={styles.tipsTitle}>Tips for Success</Text>

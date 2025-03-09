@@ -3,6 +3,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import { SplashScreen } from "expo-router";
+import { HabitsProvider } from "../context/HabitsContext";
 import { AuthProvider } from '@/context/authContext';
 
 declare global {
@@ -31,12 +32,14 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="tabs" options={{ headerShown: false }} />
-        <Stack.Screen name="login" options={{ title: "Connexion" }} />
-        <Stack.Screen name="+not-found" options={{ title: "Oops!" }} />
-      </Stack>
-      <StatusBar style="auto" />
+      <HabitsProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="tabs" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ title: "Connexion" }} />
+          <Stack.Screen name="+not-found" options={{ title: "Oops!" }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </HabitsProvider>
     </AuthProvider>
       );
 }

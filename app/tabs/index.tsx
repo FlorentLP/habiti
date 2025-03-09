@@ -24,7 +24,6 @@ export default function HomeScreen() {
       setHabitOfToday(todayHabits);
       await ensureHabitLogsExist(todayHabits);
     };
-
     fetchHabits();
 
     const interval = setInterval(() => {
@@ -66,14 +65,16 @@ export default function HomeScreen() {
       query(
         collection(db, 'habits'),
         where('userId', '==', currentUserId),
-        where('selectedDays', 'array-contains', adjustedDay)
       )
     );
 
-    let habits: Habit[] = habitsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...(doc.data() as Omit<Habit, 'id'>),
-    }));
+    let habits: Habit[] = habitsSnapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...(doc.data() as Omit<Habit, 'id'>),
+      }))
+      .filter(habit => habit.selectedDays[adjustedDay]); // Filter habits after fetching them
+
 
     // Trier les habitudes par heure (time)
     habits.sort((a, b) => (a.time > b.time ? 1 : -1));
