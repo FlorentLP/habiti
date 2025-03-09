@@ -155,9 +155,7 @@ export default function HabitsScreen() {
                 <CategoryBadge category={habit.category} selected />
                 <View style={styles.selectedDaysBadge}>
                   <Text style={styles.selectedDaysText}>
-                    {DAYS.map((day, index) =>
-                      habit.selectedDays[index] ? `✅ ${day.substring(0, 2)} ` : `❌ ${day.substring(0, 2)} `
-                    ).join(' ')}
+                    {DAYS.filter((_, index) => habit.selectedDays[index]).join(', ')}
                   </Text>
                 </View>
                 <Text style={styles.habitTime}>

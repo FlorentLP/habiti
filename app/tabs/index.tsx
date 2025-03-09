@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, LayoutAnimation } from 'react-native';
 import Header from '../../components/Header';
 import HabitItem from '../../components/HabitItem';
 import DailyQuote from '../../components/DailyQuote';
@@ -18,22 +18,32 @@ export default function HomeScreen() {
   const currentUserId = user?.uid; // You can also use context if you store the user in your app state
 
 
-  //au mount:
   useEffect(() => {
     const fetchHabits = async () => {
       const todayHabits = await getHabitsForToday();
       setHabitOfToday(todayHabits);
       await ensureHabitLogsExist(todayHabits);
     };
+
     fetchHabits();
+
+    const interval = setInterval(() => {
+      const currentDate = new Date().toISOString().split('T')[0];
+      if (currentDate !== today) {
+        fetchHabits();
+      }
+    }, 60 * 1000); // Vérification toutes les minutes
+
+    return () => clearInterval(interval);
   }, []);
 
+
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-  const formattedDate = new Date().toLocaleDateString('en-US', {
+  const formattedDate = useMemo(() => new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
-  });
+  }), []);
 
   const getHabitIcon = (category: string) => {
     switch (category.toLowerCase()) {
@@ -53,17 +63,17 @@ export default function HomeScreen() {
     const adjustedDay = (todayDay === 0) ? 6 : todayDay - 1; // Si c'est dimanche (0), on le convertit en samedi (6), sinon on décrémente de 1
 
     const habitsSnapshot = await getDocs(
-      query(collection(db, 'habits'), where('userId', '==', currentUserId)) // Filtre par userId
+      query(
+        collection(db, 'habits'),
+        where('userId', '==', currentUserId),
+        where('selectedDays', 'array-contains', adjustedDay)
+      )
     );
 
     let habits: Habit[] = habitsSnapshot.docs.map(doc => ({
       id: doc.id,
       ...(doc.data() as Omit<Habit, 'id'>),
     }));
-
-    // Filtrer les habitudes selon leur fréquence
-    habits = habits.filter(habit => habit.selectedDays[adjustedDay]);
-
 
     // Trier les habitudes par heure (time)
     habits.sort((a, b) => (a.time > b.time ? 1 : -1));
@@ -76,17 +86,16 @@ export default function HomeScreen() {
 
     const habitLogsRef = collection(db, 'habit_logs');
     const logsSnapshot = await getDocs(
-      query(habitLogsRef, where('date', '==', today), where('userId', '==', currentUserId)) // Filtre par userId
+      query(habitLogsRef, where('date', '==', today), where('userId', '==', currentUserId))
     );
 
     const existingLogs: Record<string, HabitLog> = {};
-
     logsSnapshot.docs.forEach(doc => {
       const data = doc.data() as HabitLog;
       existingLogs[data.habitId] = { id: doc.id, ...data };
     });
 
-    setHabitLogs(existingLogs);
+    const newLogs: Record<string, HabitLog> = { ...existingLogs };
 
     for (const habit of habits) {
       if (!existingLogs[habit.id]) {
@@ -96,16 +105,13 @@ export default function HomeScreen() {
           completed: false,
           userId: currentUserId,
         };
-
         const docRef = await addDoc(habitLogsRef, newLog);
-
-        setHabitLogs(prev => ({
-          ...prev,
-          [habit.id]: { ...newLog, id: docRef.id },
-        }));
+        newLogs[habit.id] = { ...newLog, id: docRef.id };
       }
     }
+    setHabitLogs(newLogs);
   };
+
 
 
   const toggleCompletion = async (habitId: string) => {
@@ -136,6 +142,8 @@ export default function HomeScreen() {
   useEffect(() => {
     setProgress(getCompletionRate());
   }, [habitLogs, habitsOfToday]); // Met à jour lorsque les logs ou les habitudes du jour changent
+
+  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
   return (
     <SafeAreaView style={styles.safeArea}>

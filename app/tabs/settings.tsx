@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, Switch, TouchableOpacity, Alert, Platform } from 'react-native';
 import Header from '../../components/Header';
-import { useHabits } from '../../context/HabitsContext';
 import { Bell, Moon, Sun, CircleHelp, LogOut, Trash2 } from 'lucide-react-native';
 import { signOut } from "firebase/auth";
 import { auth } from "@/config/firebase";
@@ -10,7 +9,6 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/authContext';
 
 export default function SettingsScreen() {
-  const { habits } = useHabits();
   const { user, setUser } = useAuth(); // Assure-toi que ton authContext a bien setUser
   const router = useRouter();
 
@@ -69,7 +67,7 @@ export default function SettingsScreen() {
 
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{habits.length}</Text>
+            <Text style={styles.statValue}>{"habits.lenght"}</Text>
             <Text style={styles.statLabel}>Habits</Text>
           </View>
           <View style={styles.statDivider} />
