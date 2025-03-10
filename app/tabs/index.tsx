@@ -9,35 +9,15 @@ import { db } from '@/config/firebase';
 import { collection, getDocs, query, where, addDoc, doc, updateDoc } from 'firebase/firestore';
 import { Habit, HabitLog, COLORS } from '@/context/constants';
 import { useAuth } from '@/context/authContext';
+import { useHabits } from '@/context/HabitsContext';
 
 
 export default function HomeScreen() {
-  const [habitsOfToday, setHabitOfToday] = useState<Habit[]>([]); // etat local habits of today
   const [habitLogs, setHabitLogs] = useState<Record<string, HabitLog>>({}); //etat local de la db logs
   const { user } = useAuth(); // Assure-toi que ton authContext a bien setUser
+  const { habitsOfToday, today } = useHabits()!;
   const currentUserId = user?.uid; // You can also use context if you store the user in your app state
 
-
-  useEffect(() => {
-    const fetchHabits = async () => {
-      const todayHabits = await getHabitsForToday();
-      setHabitOfToday(todayHabits);
-      await ensureHabitLogsExist(todayHabits);
-    };
-    fetchHabits();
-
-    const interval = setInterval(() => {
-      const currentDate = new Date().toISOString().split('T')[0];
-      if (currentDate !== today) {
-        fetchHabits();
-      }
-    }, 60 * 1000); // Vérification toutes les minutes
-
-    return () => clearInterval(interval);
-  }, []);
-
-
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
   const formattedDate = useMemo(() => new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',

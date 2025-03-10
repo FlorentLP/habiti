@@ -6,6 +6,8 @@ import { Habit } from '@/context/constants';
 
 interface HabitContextType {
   habits: Habit[];
+  today: string;
+  habitsOfToday: Habit[];
   addHabit: (habit: Omit<Habit, 'id' | 'userId'>) => Promise<void>;
   updateHabit: (id: string, updatedFields: Partial<Habit>) => Promise<void>;
   deleteHabit: (id: string) => Promise<void>;
@@ -18,6 +20,9 @@ export const HabitProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   const currentUserId = user?.uid;
   const [habits, setHabits] = useState<Habit[]>([]);
+  const [habitsOfToday, setHabitOfToday] = useState<Habit[]>([]);
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+
 
   useEffect(() => {
     try {
@@ -36,6 +41,23 @@ export const HabitProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       console.error("Firestore error:", error);
     }
+  }, [currentUserId]);
+
+  useEffect(() => {
+    const fetchHabits = async () => {
+      const todayHabits = await getHabitsForToday();
+      setHabitOfToday(todayHabits);
+    };
+    fetchHabits();
+
+    const interval = setInterval(() => {
+      const currentDate = new Date().toISOString().split('T')[0];
+      if (currentDate !== today) {
+        fetchHabits();
+      }
+    }, 60 * 1000); // Vérification toutes les minutes
+
+    return () => clearInterval(interval);
   }, [currentUserId]);
 
   const addHabit = async (habit: Omit<Habit, 'id' | 'userId'>
@@ -62,7 +84,7 @@ export const HabitProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <HabitContext.Provider value={{ habits, addHabit, updateHabit, deleteHabit, getHabitsForToday }}>
+    <HabitContext.Provider value={{ habits, habitsOfToday, today, addHabit, updateHabit, deleteHabit, getHabitsForToday }}>
       {children}
     </HabitContext.Provider>
   );
