@@ -3,7 +3,7 @@ export interface Habit {
   id: string;
   title: string;
   category: string;
-  selectedDays: [boolean];
+  selectedDays: boolean[];
   userId: string;
   time: string;
 }

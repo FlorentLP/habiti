@@ -1,15 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
 import { Plus, CreditCard as Edit2, Trash2, X } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-
-// Firebase
-import { addDoc, collection, deleteDoc, doc, onSnapshot, updateDoc, query, where } from 'firebase/firestore';
-import { db } from '@/config/firebase';
-
 // Context & Constants
-import { useAuth } from '@/context/authContext';
+import { useHabits } from '@/context/HabitsContext';
 import { Habit, categories, DAYS, COLORS } from '@/context/constants';
 
 // Components
@@ -18,46 +13,23 @@ import CategoryBadge from '../../components/CategoryBadge';
 
 
 export default function HabitsScreen() {
-  //la liste des habitudes
-  const [habits, setHabits] = useState<Habit[]>([]);
-  // si le form est visible ou non
-  const [modalVisible, setModalVisible] = useState(false);
-  //l'habitude que je modifie si j'en modifie une
-  const [editingHabit, setEditingHabit] = useState<any>(null);
+  const { habits, updateHabit, deleteHabit, addHabit } = useHabits()!;
 
   //ce sont les champs dynamiques du formulaire 1 state par champ
   const [title, setTitle] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedDays, setSelectedDays] = useState<boolean[]>([true, true, true, true, true, true, true]);
-
-  const { user } = useAuth(); // Assure-toi que ton authContext a bien setUser
-  const currentUserId = user?.uid; // You can also use context if you store the user in your app state
-
   const [time, setTime] = useState(new Date());
+
+  const [modalVisible, setModalVisible] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+
+  //l'habitude que je modifie si j'en modifie une
+  const [editingHabit, setEditingHabit] = useState<any>(null);
+
   const sortedHabits = useMemo(() => {
     return [...habits].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
-  }, [habits]);
-
-  useEffect(() => { //s'execute au montage
-    try {
-      if (!currentUserId) return; // Make sure userId is available before fetching
-      // lorsque firestore est modifie, il appel la fonction snapshot
-      const unsubscribe = onSnapshot(
-        query(collection(db, "habits"), where("userId", "==", user.uid)),
-        (snapshot) => {
-        // recupere chaque document de la table habits
-        const newHabits: Habit[] = snapshot.docs.map((doc) => {
-          const data = doc.data() as Omit<Habit, "id">; // recupere une habit sans le champ id
-          return { id: doc.id, ...data }; // ajoute a l'habit recuperee avec l'id du document
-        });
-        setHabits(newHabits); // update l'etat locale des habitudes
-      });
-      return () => unsubscribe(); // arrete l'ecoute en temps reel du firestore si on demounte le composant
-    } catch (error) {
-      console.error("Firestore error:", error);
-    }
-  }, [currentUserId]);// Re-run effect if userId changes
+  }, []);
 
   const openAddModal = useCallback(() => {
     setEditingHabit(null);
@@ -84,18 +56,17 @@ export default function HabitsScreen() {
     }
     try {
       if (editingHabit) {
-        await updateDoc(doc(db, 'habits', editingHabit.id), {
+        await updateHabit( editingHabit.id, {
           title: title.trim(),
           category: selectedCategory || 'Other',
           selectedDays: selectedDays,
           time: time.toISOString(),
         });
       } else {
-        await addDoc(collection(db, 'habits'), {
+        await addHabit({
           title: title.trim(),
           category: selectedCategory || 'Other',
           selectedDays: selectedDays,
-          userId: currentUserId,
           time: time.toISOString(),
         });
       }
@@ -108,14 +79,14 @@ export default function HabitsScreen() {
 
   const handleDeleteHabit = async (id :string) => {
     try {
-      await deleteDoc(doc(db, 'habits', id));
+      await deleteHabit(id);
       setModalVisible(false);
     } catch (error) {
       Alert.alert('Error', 'Failed to delete habit');
     }
   };
 
-  const handleTimeChange = (event: any, selectedTime?: Date) => {
+  const handleTimeChange = (_event: any, selectedTime?: Date) => {
     setShowTimePicker(false);
     if (selectedTime) {
       setTime(selectedTime);

@@ -9,7 +9,7 @@ import {
   Platform,
   TouchableOpacity
 } from 'react-native';
-import { useHabits } from '../../context/HabitsContext';
+import { useHabits } from '@/context/HabitsContext';
 import Header from '../../components/Header';
 import CategoryBadge from '../../components/CategoryBadge';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';

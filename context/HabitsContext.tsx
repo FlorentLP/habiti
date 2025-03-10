@@ -1,127 +1,73 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { collection, query, onSnapshot, addDoc, doc, deleteDoc } from 'firebase/firestore';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { db } from '@/config/firebase';
+import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, getDocs, doc } from 'firebase/firestore';
+import { useAuth } from '@/context/authContext';
+import { Habit } from '@/context/constants';
 
-export interface Habit {
-  id: string;
-  title: string;
-  category: string;
-  frequency: 'daily' | 'weekly';
-  createdAt: string;
-}
-
-export interface HabitCompletion {
-  id: string;
-  habitId: string;
-  date: string;
-}
-
-interface HabitsContextType {
+interface HabitContextType {
   habits: Habit[];
-  completions: HabitCompletion[];
-  addHabit: (habit: Omit<Habit, 'id'>) => void;
-  completeHabit: (habitId: string) => void;
-  getCompletionRate: (period?: 'day' | 'week' | 'month') => number;
-  getHabitsByCategory: () => Record<string, number>;
+  addHabit: (habit: Omit<Habit, 'id' | 'userId'>) => Promise<void>;
+  updateHabit: (id: string, updatedFields: Partial<Habit>) => Promise<void>;
+  deleteHabit: (id: string) => Promise<void>;
+  getHabitsForToday: () => Promise<Habit[]>;
 }
 
-const HabitsContext = createContext<HabitsContextType | undefined>(undefined);
+const HabitContext = createContext<HabitContextType | null>(null);
 
-export const useHabits = () => {
-  const context = useContext(HabitsContext);
-  if (!context) {
-    throw new Error('useHabits must be used within a HabitsProvider');
-  }
-  return context;
-};
-
-export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const HabitProvider = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth();
+  const currentUserId = user?.uid;
   const [habits, setHabits] = useState<Habit[]>([]);
-  const [completions, setCompletions] = useState<HabitCompletion[]>([]);
 
   useEffect(() => {
-    const habitsQuery = query(collection(db, 'habits'));
-    const unsubscribeHabits = onSnapshot(habitsQuery, (snapshot) => {
-      setHabits(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Habit)));
-    });
+    try {
+      if (!currentUserId) return;
 
-    const completionsQuery = query(collection(db, 'completions'));
-    const unsubscribeCompletions = onSnapshot(completionsQuery, (snapshot) => {
-      setCompletions(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as HabitCompletion)));
-    });
+      const q = query(collection(db, 'habits'), where('userId', '==', currentUserId));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const newHabits: Habit[] = snapshot.docs.map(doc => {
+          const data = doc.data() as Omit<Habit, "id">;
+          return { id: doc.id, ...data };
+        });
+        setHabits(newHabits);
+      });
 
-    return () => {
-      unsubscribeHabits();
-      unsubscribeCompletions();
-    };
-  }, []);
-
-  const addHabit = async (habit: Omit<Habit, 'id'>) => {
-    await addDoc(collection(db, 'habits'), habit);
-  };
-
-  const completeHabit = async (habitId: string) => {
-    await addDoc(collection(db, 'completions'), {
-      habitId,
-      date: new Date().toISOString(),
-    });
-  };
-
-  const getCompletionRate = (period: 'day' | 'week' | 'month' = 'day') => {
-    if (habits.length === 0) return 0;
-
-    const today = new Date();
-    let startDate = new Date(today);
-
-    switch (period) {
-      case 'week':
-        startDate.setDate(today.getDate() - 7);
-        break;
-      case 'month':
-        startDate.setMonth(today.getMonth() - 1);
-        break;
-      default:
-        break;
+      return () => unsubscribe();
+    } catch (error) {
+      console.error("Firestore error:", error);
     }
+  }, [currentUserId]);
 
-    const relevantCompletions = completions.filter((completion) => {
-      const completionDate = new Date(completion.date);
-      return completionDate >= startDate && completionDate <= today;
-    });
-
-    const dailyHabits = habits.filter((habit) => habit.frequency === 'daily');
-
-    if (dailyHabits.length === 0) return 0;
-
-    const daysDiff = Math.max(1, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-    const totalPossibleCompletions = dailyHabits.length * daysDiff;
-
-    return (relevantCompletions.length / totalPossibleCompletions) * 100;
+  const addHabit = async (habit: Omit<Habit, 'id' | 'userId'>
+  ) => {
+    if (!currentUserId) return;
+    await addDoc(collection(db, 'habits'), { ...habit, userId: currentUserId });
   };
 
-  const getHabitsByCategory = () => {
-    return habits.reduce((acc, habit) => {
-      const category = habit.category;
-      if (!acc[category]) {
-        acc[category] = 0;
-      }
-      acc[category]++;
-      return acc;
-    }, {} as Record<string, number>);
+  const updateHabit = async (id: string, updatedFields: Partial<Habit>) => {
+    await updateDoc(doc(db, 'habits', id), updatedFields);
+  };
+
+  const deleteHabit = async (id: string) => {
+    await deleteDoc(doc(db, 'habits', id));
+  };
+
+  const getHabitsForToday = async (): Promise<Habit[]> => {
+    if (!currentUserId) return [];
+    const todayIndex = (new Date().getDay() + 6) % 7;
+    const habitsSnapshot = await getDocs(query(collection(db, 'habits'), where('userId', '==', currentUserId)));
+    return habitsSnapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() } as Habit))
+      .filter(habit => habit.selectedDays[todayIndex]);
   };
 
   return (
-    <HabitsContext.Provider
-      value={{
-        habits,
-        completions,
-        addHabit,
-        completeHabit,
-        getCompletionRate,
-        getHabitsByCategory,
-      }}
-    >
+    <HabitContext.Provider value={{ habits, addHabit, updateHabit, deleteHabit, getHabitsForToday }}>
       {children}
-    </HabitsContext.Provider>
+    </HabitContext.Provider>
   );
+};
+
+export const useHabits = () => {
+  return useContext(HabitContext);
 };
