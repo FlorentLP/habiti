@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import { SplashScreen } from "expo-router";
-import { HabitsProvider } from "../context/HabitsContext";
 import { AuthProvider } from '@/context/authContext';
+import { HabitProvider } from '@/context/HabitsContext';
+
 
 declare global {
   interface Window {
@@ -32,14 +33,14 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <HabitsProvider>
+      <HabitProvider>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="tabs" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ title: "Connexion" }} />
           <Stack.Screen name="+not-found" options={{ title: "Oops!" }} />
         </Stack>
         <StatusBar style="auto" />
-      </HabitsProvider>
+      </HabitProvider>
     </AuthProvider>
       );
 }

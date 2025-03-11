@@ -1,22 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, LayoutAnimation } from 'react-native';
 import Header from '../../components/Header';
 import HabitItem from '../../components/HabitItem';
 import DailyQuote from '../../components/DailyQuote';
 import ProgressCircle from '../../components/ProgressCircle';
 import { Droplets, Brain, BookOpen, Dumbbell, Briefcase } from 'lucide-react-native';
-import { db } from '@/config/firebase';
-import { collection, getDocs, query, where, addDoc, doc, updateDoc } from 'firebase/firestore';
-import { Habit, HabitLog, COLORS } from '@/context/constants';
-import { useAuth } from '@/context/authContext';
+import { COLORS } from '@/context/constants';
 import { useHabits } from '@/context/HabitsContext';
 
 
 export default function HomeScreen() {
-  const [habitLogs, setHabitLogs] = useState<Record<string, HabitLog>>({}); //etat local de la db logs
-  const { user } = useAuth(); // Assure-toi que ton authContext a bien setUser
-  const { habitsOfToday, today } = useHabits()!;
-  const currentUserId = user?.uid; // You can also use context if you store the user in your app state
+  const { habitsOfToday, getCompletionRate, toggleCompletion, habitLogs } = useHabits()!;
 
   const formattedDate = useMemo(() => new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -35,96 +29,11 @@ export default function HomeScreen() {
     }
   };
 
-  const getHabitsForToday = async (): Promise<Habit[]> => {
-    if (!currentUserId) return []; // Vérifier que l'utilisateur est bien défini
-
-    const todayDay = new Date().getDay(); // Récupère l'indice du jour (0 = dimanche, 1 = lundi, etc.)
-    const adjustedDay = (todayDay === 0) ? 6 : todayDay - 1; // Si c'est dimanche (0), on le convertit en samedi (6), sinon on décrémente de 1
-
-    const habitsSnapshot = await getDocs(
-      query(
-        collection(db, 'habits'),
-        where('userId', '==', currentUserId),
-      )
-    );
-
-    let habits: Habit[] = habitsSnapshot.docs
-      .map(doc => ({
-        id: doc.id,
-        ...(doc.data() as Omit<Habit, 'id'>),
-      }))
-      .filter(habit => habit.selectedDays[adjustedDay]); // Filter habits after fetching them
-
-
-    // Trier les habitudes par heure (time)
-    habits.sort((a, b) => (a.time > b.time ? 1 : -1));
-
-    return habits;
-  };
-
-  const ensureHabitLogsExist = async (habits: Habit[]) => {
-    if (!currentUserId) return;
-
-    const habitLogsRef = collection(db, 'habit_logs');
-    const logsSnapshot = await getDocs(
-      query(habitLogsRef, where('date', '==', today), where('userId', '==', currentUserId))
-    );
-
-    const existingLogs: Record<string, HabitLog> = {};
-    logsSnapshot.docs.forEach(doc => {
-      const data = doc.data() as HabitLog;
-      existingLogs[data.habitId] = { id: doc.id, ...data };
-    });
-
-    const newLogs: Record<string, HabitLog> = { ...existingLogs };
-
-    for (const habit of habits) {
-      if (!existingLogs[habit.id]) {
-        const newLog: HabitLog = {
-          habitId: habit.id,
-          date: today,
-          completed: false,
-          userId: currentUserId,
-        };
-        const docRef = await addDoc(habitLogsRef, newLog);
-        newLogs[habit.id] = { ...newLog, id: docRef.id };
-      }
-    }
-    setHabitLogs(newLogs);
-  };
-
-
-
-  const toggleCompletion = async (habitId: string) => {
-    const log = habitLogs[habitId];
-
-    if (!log || !log.id) return; // Vérifie que log.id existe bien
-
-    await updateDoc(doc(db, 'habit_logs', log.id), {
-      completed: !log.completed,
-    });
-
-    setHabitLogs(prev => ({
-      ...prev,
-      [habitId]: { ...log, completed: !log.completed },
-    }));
-  };
-
-  // progression circle logic
-  const getCompletionRate = () => {
-    if (habitsOfToday.length === 0) return 0;
-
-    const completedCount = habitsOfToday.filter(habit => habitLogs[habit.id]?.completed).length;
-    return (completedCount / habitsOfToday.length) * 100;
-  };
-
   const [progress, setProgress] = React.useState(getCompletionRate());
 
   useEffect(() => {
     setProgress(getCompletionRate());
   }, [habitLogs, habitsOfToday]); // Met à jour lorsque les logs ou les habitudes du jour changent
-
-  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
   return (
     <SafeAreaView style={styles.safeArea}>
