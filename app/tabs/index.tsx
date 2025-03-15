@@ -25,11 +25,14 @@ export default function HomeScreen() {
   const formattedDate = useMemo(() => new Date().toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric',
   }), []);
-
-  const [progress, setProgress] = useState(getCompletionRate());
+  const [progress, setProgress] = useState<number>(0); // Initialise avec 0
 
   useEffect(() => {
-    setProgress(getCompletionRate());
+    const fetchProgress = async () => {
+      const completionRate = await getCompletionRate();
+      setProgress(completionRate);
+    };
+    fetchProgress();
   }, [habitLogs, habitsOfToday]);
 
 

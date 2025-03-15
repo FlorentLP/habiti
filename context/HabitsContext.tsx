@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { db } from '@/config/firebase';
-import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, getDocs, doc, writeBatch } from 'firebase/firestore';
+import {
+  collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, getDocs, doc, writeBatch
+} from 'firebase/firestore';
 import { useAuth } from '@/context/authContext';
 import { Habit, HabitLog } from '@/context/constants';
 
@@ -30,7 +32,7 @@ export const HabitProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (!currentUserId) return;
 
-    const q = query(collection(db, 'habits'), where('userId', '==', currentUserId));
+    const q = query(collection(db, `users/${currentUserId}/habits`));
     const unsubscribe = onSnapshot(q, snapshot => {
       const fetchedHabits = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Habit));
       setHabits(fetchedHabits);
@@ -42,8 +44,9 @@ export const HabitProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (!currentUserId || habitsOfToday.length === 0) return;
-    const habitLogsRef = collection(db, 'habit_logs');
-    const q = query(habitLogsRef, where('date', '==', today), where('userId', '==', currentUserId));
+
+    const habitLogsRef = collection(db, `users/${currentUserId}/habitLogs`);
+    const q = query(habitLogsRef, where('date', '==', today));
 
     const unsubscribe = onSnapshot(q, async snapshot => {
       const existingLogs: Record<string, HabitLog> = {};
@@ -56,7 +59,7 @@ export const HabitProvider = ({ children }: { children: React.ReactNode }) => {
       if (missingHabits.length > 0) {
         const batch = writeBatch(db);
         missingHabits.forEach(habit => {
-          const newLogRef = doc(collection(db, 'habit_logs'));
+          const newLogRef = doc(collection(db, `users/${currentUserId}/habitLogs`));
           batch.set(newLogRef, { habitId: habit.id, date: today, completed: false, userId: currentUserId });
           existingLogs[habit.id] = { id: newLogRef.id, habitId: habit.id, date: today, completed: false, userId: currentUserId };
         });

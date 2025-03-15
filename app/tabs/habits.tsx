@@ -29,7 +29,7 @@ export default function HabitsScreen() {
 
   const sortedHabits = useMemo(() => {
     return [...habits].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
-  }, []);
+  }, [habits]);
 
   const openAddModal = useCallback(() => {
     setEditingHabit(null);
