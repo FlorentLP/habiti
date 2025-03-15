@@ -49,27 +49,46 @@ export const HabitProvider = ({ children }: { children: React.ReactNode }) => {
     const q = query(habitLogsRef, where('date', '==', today));
 
     const unsubscribe = onSnapshot(q, async snapshot => {
-      const existingLogs: Record<string, HabitLog> = {};
-      snapshot.docs.forEach(doc => {
+      const existingLogs = snapshot.docs.reduce<Record<string, HabitLog>>((acc, doc) => {
         const data = doc.data() as HabitLog;
-        existingLogs[data.habitId] = { id: doc.id, ...data };
-      });
+        acc[data.habitId] = { id: doc.id, ...data };
+        return acc;
+      }, {});
 
-      const missingHabits = habitsOfToday.filter(habit => !existingLogs[habit.id]);
+      const missingHabits = habitsOfToday.filter(
+        habit => !existingLogs[habit.id] && habits.some(h => h.id === habit.id)
+      );
+
       if (missingHabits.length > 0) {
-        const batch = writeBatch(db);
-        missingHabits.forEach(habit => {
-          const newLogRef = doc(collection(db, `users/${currentUserId}/habitLogs`));
-          batch.set(newLogRef, { habitId: habit.id, date: today, completed: false, userId: currentUserId });
-          existingLogs[habit.id] = { id: newLogRef.id, habitId: habit.id, date: today, completed: false, userId: currentUserId };
-        });
-        await batch.commit();
+        await addMissingHabitLogs(missingHabits, existingLogs);
       }
+
       setHabitLogs(existingLogs);
     });
 
     return () => unsubscribe();
   }, [currentUserId, habitsOfToday, today]);
+
+  async function addMissingHabitLogs(missingHabits: Habit[], existingLogs: Record<string, HabitLog>) {
+    if (!currentUserId) return;
+
+    const batch = writeBatch(db);
+    missingHabits.forEach(habit => {
+      const newLogRef = doc(collection(db, `users/${currentUserId}/habitLogs`));
+      const newLog: HabitLog = {
+        id: newLogRef.id,
+        habitId: habit.id,
+        date: today,
+        completed: false,
+        userId: currentUserId
+      };
+
+      batch.set(newLogRef, newLog);
+      existingLogs[habit.id] = newLog;
+    });
+
+    await batch.commit();
+  }
 
   useEffect(() => {
     if (!habits.length) return;
@@ -99,7 +118,23 @@ export const HabitProvider = ({ children }: { children: React.ReactNode }) => {
 
   const deleteHabit = async (id: string) => {
     if (currentUserId) {
+      // Supprimer d'abord tous les logs associés à cette habitude
+      const habitLogsRef = collection(db, `users/${currentUserId}/habitLogs`);
+      const q = query(habitLogsRef, where('habitId', '==', id)); // Rechercher les logs de cette habitude
       await deleteDoc(doc(db, `users/${currentUserId}/habits`, id));
+
+      const querySnapshot = await getDocs(q);
+      const batch = writeBatch(db);
+
+      querySnapshot.forEach(doc => {
+        batch.delete(doc.ref); // Marquer chaque log pour suppression
+      });
+
+      // Commiter la suppression des logs
+      await batch.commit();
+
+      // Ensuite, supprimer l'habitude elle-même
+
     }
   };
 
