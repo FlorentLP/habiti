@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
 import Header from '../../components/Header';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useHabits } from '@/context/HabitsContext';
+import { COLORS } from '@/context/constants';
+
 
 const ProgressScreen = () => {
   const { habitLogs } = useHabits()!;
@@ -63,33 +65,27 @@ const ProgressScreen = () => {
   };
 
   const getCompletionPercentage = (date: Date): number => {
-    // Formater la date passée en paramètre au format ISO "YYYY-MM-DD"
-    const formattedDate = date.toISOString().split('T')[0]; // "2025-03-15"
-
-    // Filtrer les logs correspondant à la date
-    const logsForDate = Object.values(habitLogs).filter(log => {
-      // Comparer la date du log (au format "YYYY-MM-DD") avec la date formatée
-      const logDate = log.date; // Assurez-vous que log.date est déjà au format ISO
-      return logDate === formattedDate;
-    });
-
-    // Si aucun log n'est trouvé pour cette date, retourne 0
+    const formattedDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+    const logsForDate = Object.values(habitLogs).filter(log => log.date === formattedDate);
     if (logsForDate.length === 0) return 0;
-
-    // Compter les habitudes complétées
     const completedCount = logsForDate.filter(log => log.completed).length;
-
-    // Retourner le pourcentage de complétion
     return Math.round((completedCount / logsForDate.length) * 100);
   };
 
-
   const getCompletionColor = (completion: number) => {
-    const intensity = Math.floor((completion / 100) * 255);
-    console.log(completion);
-    console.log(intensity);
-    return `rgba(108, 99, 255, ${intensity / 255})`;
+    const intensity = completion / 100;
+
+    // Définir les couleurs de début (blanc) et de fin (vert flashy healthy)
+    const startColor = [255, 255, 255]; // Blanc pour 0%
+    const endColor = [102, 204, 102]; // Vert apaisant mais intense pour 100%
+
+    // Interpolation entre les deux couleurs
+    const color = startColor.map((start, index) => Math.round(start + (endColor[index] - start) * intensity));
+
+    return `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
   };
+
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -100,10 +96,10 @@ const ProgressScreen = () => {
           {periods.map((period) => (
             <Pressable
               key={period.value}
-              style={[styles.periodButton, selectedPeriod === period.value && styles.selectedPeriodButton]}
+              style={[styles.periodButton, selectedPeriod === period.value ? styles.selectedPeriodButton : styles.deselectedPeriodButton]}
               onPress={() => setSelectedPeriod(period.value)}
             >
-              <Text style={[styles.periodButtonText, selectedPeriod === period.value && styles.selectedPeriodButtonText]}>
+              <Text style={[styles.periodButtonText, selectedPeriod === period.value ? styles.selectedPeriodButtonText : styles.deselectedPeriodButtonText]}>
                 {period.label}
               </Text>
             </Pressable>
@@ -139,17 +135,34 @@ const ProgressScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F8F8FA' },
+  safeArea: { flex: 1, backgroundColor: COLORS.background },
   container: { flex: 1, padding: 16 },
   periodSelector: { flexDirection: 'row', marginBottom: 16 },
-  periodButton: { flex: 1, padding: 10, alignItems: 'center', borderRadius: 8, backgroundColor: '#EFEFEF' },
-  selectedPeriodButton: { backgroundColor: '#6C63FF' },
-  periodButtonText: { fontSize: 16 },
+  periodButton: { flex: 1, padding: 10, alignItems: 'center', borderRadius: 8 },
+  deselectedPeriodButtonText: { color: COLORS.text },
+  deselectedPeriodButton: { backgroundColor: 'white' },
+  selectedPeriodButton: { backgroundColor: COLORS.primary },
+  periodButtonText: {
+    fontSize: 16,
+    color: COLORS.text,
+    fontWeight: '600',
+  },
   selectedPeriodButtonText: { color: '#FFFFFF' },
   calendarHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  calendarTitle: { fontSize: 18, fontWeight: 'bold' },
+  calendarTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text },
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  dayBox: { width: 40, height: 40, borderRadius: 5, justifyContent: 'center', alignItems: 'center', margin: 4 },
+  dayBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    margin: 6,
+    shadowColor: COLORS.text,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+  },
   dayText: { color: '#000', fontSize: 14, fontWeight: 'bold' }
 });
 
