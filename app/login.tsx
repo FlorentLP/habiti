@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,7 +6,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  ActivityIndicator
 } from "react-native";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/config/firebase";
@@ -17,64 +20,79 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const { user } = useAuth();
   const router = useRouter();
 
-  // ✅ Redirection après montage du composant si l'utilisateur est déjà connecté
+  // ✅ Redirection automatique si déjà connecté
   useEffect(() => {
     if (user) {
       router.replace("/tabs");
     }
-  }, [user]); // Se déclenche uniquement si `user` change
+  }, [user]);
 
-  const handleLogin = async () => {
+  const handleLogin = useCallback(async () => {
+    if (!email || !password) {
+      setError("Veuillez remplir tous les champs.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("✅ Connexion réussie :", userCredential.user);
       router.replace("/tabs");
-    } catch (error) {
-      console.error("❌ Erreur de connexion :", error);
-      setError("Identifiants incorrects");
+    } catch (err: any) {
+      console.error("❌ Erreur de connexion :", err);
+      setError("Email ou mot de passe incorrect.");
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [email, password, router]);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <View style={styles.card}>
-        <Text style={styles.title}>Bienvenue 👋</Text>
-        <Text style={styles.subtitle}>Connecte-toi pour continuer</Text>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <View style={styles.card}>
+          <Text style={styles.title}>Bienvenue 👋</Text>
+          <Text style={styles.subtitle}>Connecte-toi pour continuer</Text>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <TextInput
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          style={styles.input}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <TextInput
-          placeholder="Mot de passe"
-          value={password}
-          onChangeText={setPassword}
-          style={styles.input}
-          secureTextEntry
-        />
+          <TextInput
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+            style={styles.input}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+          />
+          <TextInput
+            placeholder="Mot de passe"
+            value={password}
+            onChangeText={setPassword}
+            style={styles.input}
+            secureTextEntry
+            autoComplete="password"
+          />
 
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Se connecter</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleLogin} disabled={loading}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Se connecter</Text>}
+          </TouchableOpacity>
 
-        <Text style={styles.footerText}>
-          Pas encore de compte ? <Text style={styles.link}>Inscris-toi</Text>
-        </Text>
-      </View>
-    </KeyboardAvoidingView>
+          <Text style={styles.footerText}>
+            Pas encore de compte ? <Text style={styles.link}>Inscris-toi</Text>
+          </Text>
+        </View>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -128,6 +146,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 10,
   },
+  buttonDisabled: {
+    backgroundColor: "#A0A0A0",
+  },
   buttonText: {
     color: "#fff",
     fontWeight: "bold",
@@ -143,3 +164,4 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
+

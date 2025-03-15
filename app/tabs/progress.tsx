@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  SafeAreaView, 
-  ScrollView, 
-  Pressable, 
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  Pressable,
   Platform,
   TouchableOpacity
 } from 'react-native';
@@ -18,10 +18,8 @@ type Period = 'week' | 'month';
 export default function ProgressScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
-  
-/*  const categoryData = getHabitsByCategory();
-  const categories = Object.keys(categoryData);*/
-  
+
+
   const periods: { label: string; value: Period }[] = [
     { label: 'Weekly', value: 'week' },
     { label: 'Monthly', value: 'month' },
@@ -31,12 +29,12 @@ export default function ProgressScreen() {
   const generateDates = () => {
     const dates = [];
     const startDate = new Date(currentDate);
-    
+
     if (selectedPeriod === 'week') {
       // Set to the beginning of the week (Sunday)
       const day = startDate.getDay();
       startDate.setDate(startDate.getDate() - day);
-      
+
       // Generate 7 days
       for (let i = 0; i < 7; i++) {
         const date = new Date(startDate);
@@ -46,14 +44,14 @@ export default function ProgressScreen() {
     } else {
       // Set to the beginning of the month
       startDate.setDate(1);
-      
+
       // Get the number of days in the month
       const lastDay = new Date(
         startDate.getFullYear(),
         startDate.getMonth() + 1,
         0
       ).getDate();
-      
+
       // Generate all days in the month
       for (let i = 0; i < lastDay; i++) {
         const date = new Date(startDate);
@@ -61,38 +59,38 @@ export default function ProgressScreen() {
         dates.push(date);
       }
     }
-    
+
     return dates;
   };
-  
-/*  const periodDates = generateDates();
-  
+
+  const periodDates = generateDates();
+
   // Format date to YYYY-MM-DD for comparison
   const formatDateForComparison = (date: Date) => {
     return date.toISOString().split('T')[0];
   };
-  */
-/*  // Get completion count for a specific date
+
+  // Get completion count for a specific date
   const getCompletionCount = (date: Date) => {
     const dateString = formatDateForComparison(date);
     return completions.filter(completion => completion.date === dateString).length;
-  };*/
-  
-/*  // Get max completion count for the current period
+  };
+
+  // Get max completion count for the current period
   const getMaxCompletionCount = () => {
     return Math.max(
       ...periodDates.map(date => getCompletionCount(date)),
       1 // Ensure we don't divide by zero
     );
   };
-  *//*
+
   // Calculate the intensity of the color based on completion count
   const getColorIntensity = (count: number) => {
     const maxCount = getMaxCompletionCount();
     const intensity = count / maxCount;
     return Math.max(0.1, intensity); // Ensure at least a light color
   };
-  
+
   // Navigate to previous period
   const goToPreviousPeriod = () => {
     const newDate = new Date(currentDate);
@@ -103,7 +101,7 @@ export default function ProgressScreen() {
     }
     setCurrentDate(newDate);
   };
-  
+
   // Navigate to next period
   const goToNextPeriod = () => {
     const newDate = new Date(currentDate);
@@ -114,7 +112,7 @@ export default function ProgressScreen() {
     }
     setCurrentDate(newDate);
   };
-  
+
   // Format period title
   const getPeriodTitle = () => {
     if (selectedPeriod === 'week') {
@@ -125,7 +123,7 @@ export default function ProgressScreen() {
       return currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     }
   };
-  
+
   // Check if a date is today
   const isToday = (date: Date) => {
     const today = new Date();
@@ -133,17 +131,17 @@ export default function ProgressScreen() {
       date.getMonth() === today.getMonth() &&
       date.getFullYear() === today.getFullYear();
   };
-  
+
   // Get day name
   const getDayName = (date: Date) => {
     return date.toLocaleDateString('en-US', { weekday: 'short' });
   };
-*/
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
         <Header title="Your Progress" subtitle="Track your habit consistency" />
-        
+
         <View style={styles.periodSelector}>
           {periods.map((period) => (
             <Pressable
@@ -165,8 +163,8 @@ export default function ProgressScreen() {
             </Pressable>
           ))}
         </View>
-        
-        {/*<View style={styles.calendarContainer}>
+
+        <View style={styles.calendarContainer}>
           <View style={styles.calendarHeader}>
             <TouchableOpacity onPress={goToPreviousPeriod} style={styles.navigationButton}>
               <ChevronLeft size={24} color="#6C63FF" />
@@ -176,23 +174,23 @@ export default function ProgressScreen() {
               <ChevronRight size={24} color="#6C63FF" />
             </TouchableOpacity>
           </View>
-          
+
           {selectedPeriod === 'week' ? (
             <View style={styles.weekContainer}>
               {periodDates.map((date) => {
                 const completionCount = getCompletionCount(date);
                 const intensity = getColorIntensity(completionCount);
-                
+
                 return (
                   <View key={date.toISOString()} style={styles.dayColumn}>
                     <Text style={styles.dayName}>{getDayName(date)}</Text>
                     <Text style={[styles.dayNumber, isToday(date) && styles.todayText]}>
                       {date.getDate()}
                     </Text>
-                    <View 
+                    <View
                       style={[
-                        styles.heatmapCell, 
-                        { 
+                        styles.heatmapCell,
+                        {
                           backgroundColor: `rgba(108, 99, 255, ${intensity})`,
                           borderColor: isToday(date) ? '#6C63FF' : 'transparent',
                         }
@@ -214,27 +212,27 @@ export default function ProgressScreen() {
                   <Text key={day} style={styles.weekdayText}>{day}</Text>
                 ))}
               </View>
-              
+
               <View style={styles.monthGrid}>
                  Add empty cells for days before the 1st of the month
                 {Array.from({ length: periodDates[0].getDay() }).map((_, index) => (
                   <View key={`empty-${index}`} style={styles.emptyCell} />
                 ))}
-                
+
                  Actual days of the month
                 {periodDates.map((date) => {
                   const completionCount = getCompletionCount(date);
                   const intensity = getColorIntensity(completionCount);
-                  
+
                   return (
                     <View key={date.toISOString()} style={styles.dayCell}>
                       <Text style={[styles.monthDayNumber, isToday(date) && styles.todayText]}>
                         {date.getDate()}
                       </Text>
-                      <View 
+                      <View
                         style={[
-                          styles.monthHeatmapCell, 
-                          { 
+                          styles.monthHeatmapCell,
+                          {
                             backgroundColor: `rgba(108, 99, 255, ${intensity})`,
                             borderColor: isToday(date) ? '#6C63FF' : 'transparent',
                           }
@@ -251,10 +249,10 @@ export default function ProgressScreen() {
             </View>
           )}
         </View>
-        
+
         <View style={styles.statsContainer}>
           <Text style={styles.sectionTitle}>Habits by Category</Text>
-          
+
           <View style={styles.categoriesContainer}>
             {categories.length > 0 ? (
               categories.map((category) => (
@@ -267,8 +265,8 @@ export default function ProgressScreen() {
               <Text style={styles.emptyText}>No habits added yet</Text>
             )}
           </View>
-        </View>*/}
-        
+        </View>
+
         <View style={styles.tipsContainer}>
           <Text style={styles.tipsTitle}>Tips for Success</Text>
           <Text style={styles.tipText}>• Start with small, achievable habits</Text>
