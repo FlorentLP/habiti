@@ -11,14 +11,28 @@
     "ios": {
       "supportsTablet": true
     },
+    "android": {
+      "package": "com.wardhub.habiti",
+      "googleServicesFile": "./app/google-services.json"
+    },
     "web": {
       "bundler": "metro",
       "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router"
+    ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "1c3fd8f3-3cd9-4090-a84c-4bd6eadf50f7"
+      }
     }
   }
 }

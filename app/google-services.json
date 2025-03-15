@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "16803286238",
+    "project_id": "habit-tracker-d363b",
+    "storage_bucket": "habit-tracker-d363b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:16803286238:android:4914fbc21f1f253a84c64f",
+        "android_client_info": {
+          "package_name": "com.wardhub.habiti"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "16803286238-35remga8jgubqlt0l7jk5ogem5mg3a16.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBFryQuo0uur8PEGwtVU3uWHH32ScWXK5Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "16803286238-35remga8jgubqlt0l7jk5ogem5mg3a16.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

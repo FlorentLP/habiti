@@ -13,7 +13,7 @@ const firebaseConfig = {
   projectId: "habit-tracker-d363b",
   storageBucket: "habit-tracker-d363b.firebasestorage.app",
   messagingSenderId: "16803286238",
-  appId: "1:16803286238:web:a52e2408ee1d47e984c64f",
+  appId: "1:16803286238:web:22d6a307cab181ec84c64f",
   measurementId: "G-NS844GYV4S"
 };
 

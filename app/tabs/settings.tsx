@@ -7,9 +7,12 @@ import { auth } from "@/config/firebase";
 import { COLORS } from '@/context/constants';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/authContext';
+import { useHabits } from '@/context/HabitsContext';
+
 
 export default function SettingsScreen() {
   const { user, setUser } = useAuth(); // Assure-toi que ton authContext a bien setUser
+  const { habits } = useHabits()!;
   const router = useRouter();
 
   const [loading, setLoading] = useState(false); // New state to handle the loading during logout
@@ -57,27 +60,27 @@ export default function SettingsScreen() {
 
         <View style={styles.profileContainer}>
           <View style={styles.profileImagePlaceholder}>
-            <Text style={styles.profileInitials}>JD</Text>
+            <Text style={styles.profileInitials}>TO DO</Text>
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>John Doe</Text>
-            <Text style={styles.profileEmail}>john.doe@example.com</Text>
+            <Text style={styles.profileName}>TO DO</Text>
+            <Text style={styles.profileEmail}>{user?.email}</Text>
           </View>
         </View>
 
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{"habits.lenght"}</Text>
+            <Text style={styles.statValue}>{habits.length}</Text>
             <Text style={styles.statLabel}>Habits</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>7</Text>
+            <Text style={styles.statValue}>TO DO</Text>
             <Text style={styles.statLabel}>Days Streak</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>85%</Text>
+            <Text style={styles.statValue}>TO DO%</Text>
             <Text style={styles.statLabel}>Completion</Text>
           </View>
         </View>
