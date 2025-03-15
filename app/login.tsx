@@ -25,7 +25,7 @@ export default function Login() {
   const { user } = useAuth();
   const router = useRouter();
 
-  // ✅ Redirection automatique si déjà connecté
+``  // ✅ Automatic redirection if already logged in
   useEffect(() => {
     if (user) {
       router.replace("/tabs");
@@ -34,7 +34,7 @@ export default function Login() {
 
   const handleLogin = useCallback(async () => {
     if (!email || !password) {
-      setError("Veuillez remplir tous les champs.");
+      setError("Please fill in all fields.");
       return;
     }
 
@@ -43,11 +43,11 @@ export default function Login() {
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log("✅ Connexion réussie :", userCredential.user);
+      console.log("✅ Login successful:", userCredential.user);
       router.replace("/tabs");
     } catch (err: any) {
-      console.error("❌ Erreur de connexion :", err);
-      setError("Email ou mot de passe incorrect.");
+      console.error("❌ Login error:", err);
+      setError("Incorrect email or password.");
     } finally {
       setLoading(false);
     }
@@ -60,8 +60,8 @@ export default function Login() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <View style={styles.card}>
-          <Text style={styles.title}>Bienvenue 👋</Text>
-          <Text style={styles.subtitle}>Connecte-toi pour continuer</Text>
+          <Text style={styles.title}>Welcome 👋</Text>
+          <Text style={styles.subtitle}>Log in to continue</Text>
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -75,7 +75,7 @@ export default function Login() {
             autoComplete="email"
           />
           <TextInput
-            placeholder="Mot de passe"
+            placeholder="Password"
             value={password}
             onChangeText={setPassword}
             style={styles.input}
@@ -84,11 +84,11 @@ export default function Login() {
           />
 
           <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleLogin} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Se connecter</Text>}
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Log in</Text>}
           </TouchableOpacity>
 
           <Text style={styles.footerText}>
-            Pas encore de compte ? <Text style={styles.link}>Inscris-toi</Text>
+            Don't have an account? <Text style={styles.link}>Sign up</Text>
           </Text>
         </View>
       </KeyboardAvoidingView>
@@ -164,4 +164,3 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
-

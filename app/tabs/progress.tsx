@@ -13,15 +13,14 @@ import { BookOpen, Brain, Briefcase, ChevronLeft, ChevronRight, Droplets, Dumbbe
 import { useHabits } from '@/context/HabitsContext';
 import { COLORS, categories } from '@/context/constants';
 
-
 const ProgressScreen = () => {
-  const { habitLogs,habits } = useHabits()!;
+  const { habitLogs, habits } = useHabits()!;
   const [selectedPeriod, setSelectedPeriod] = useState('week');
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const periods = [
-    { label: 'Semaine', value: 'week' },
-    { label: 'Mois', value: 'month' }
+    { label: 'Week', value: 'week' },
+    { label: 'Month', value: 'month' }
   ];
 
   const generateDates = () => {
@@ -60,7 +59,7 @@ const ProgressScreen = () => {
     if (selectedPeriod === 'week') {
       return `${periodDates[0].toLocaleDateString()} - ${periodDates[6].toLocaleDateString()}`;
     } else {
-      return currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      return currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     }
   };
 
@@ -74,19 +73,16 @@ const ProgressScreen = () => {
 
   const getCompletionColor = (completion: number) => {
     const intensity = completion / 100;
+    const startColor = [255, 255, 255];
+    const endColor = [102, 204, 102];
 
-    // Définir les couleurs de début (blanc) et de fin (vert flashy healthy)
-    const startColor = [255, 255, 255]; // Blanc pour 0%
-    const endColor = [102, 204, 102]; // Vert apaisant mais intense pour 100%
-
-    // Interpolation entre les deux couleurs
     const color = startColor.map((start, index) => Math.round(start + (endColor[index] - start) * intensity));
 
     return `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
   };
 
   const getHabitsCountByCategory = () => {
-    const habitCount: { [key: string]: number } = {}; // Déclaration du type explicite pour habitCount
+    const habitCount: { [key: string]: number } = {};
     habits.forEach(habit => {
       const category = habit.category.toLowerCase();
       if (habitCount[category]) {
@@ -96,7 +92,6 @@ const ProgressScreen = () => {
       }
     });
 
-    // Ajout d'un check pour chaque catégorie et mise à 0 si pas d'habitudes
     categories.forEach(category => {
       if (!habitCount[category.toLowerCase()]) {
         habitCount[category.toLowerCase()] = 0;
@@ -106,11 +101,8 @@ const ProgressScreen = () => {
     return habitCount;
   };
 
-
-  // Récupération des habitudes par catégorie
   const habitsCountByCategory = getHabitsCountByCategory();
 
-  // Fonction pour obtenir l'icône de la catégorie
   const getHabitIcon = (category: string) => {
     switch (category.toLowerCase()) {
       case 'nutrition': return <Droplets size={20} color={COLORS.primary} />;
@@ -125,7 +117,7 @@ const ProgressScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container}>
-        <Header title="Statistiques" subtitle="Suivi de vos habitudes" />
+        <Header title="Statistics" subtitle="Track your habits" />
 
         <View style={styles.periodSelector}>
           {periods.map((period) => (
