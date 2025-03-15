@@ -9,13 +9,13 @@ import {
   StyleSheet
 } from 'react-native';
 import Header from '../../components/Header';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { BookOpen, Brain, Briefcase, ChevronLeft, ChevronRight, Droplets, Dumbbell } from 'lucide-react-native';
 import { useHabits } from '@/context/HabitsContext';
-import { COLORS } from '@/context/constants';
+import { COLORS, categories } from '@/context/constants';
 
 
 const ProgressScreen = () => {
-  const { habitLogs } = useHabits()!;
+  const { habitLogs,habits } = useHabits()!;
   const [selectedPeriod, setSelectedPeriod] = useState('week');
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -85,7 +85,42 @@ const ProgressScreen = () => {
     return `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
   };
 
+  const getHabitsCountByCategory = () => {
+    const habitCount: { [key: string]: number } = {}; // Déclaration du type explicite pour habitCount
+    habits.forEach(habit => {
+      const category = habit.category.toLowerCase();
+      if (habitCount[category]) {
+        habitCount[category]++;
+      } else {
+        habitCount[category] = 1;
+      }
+    });
 
+    // Ajout d'un check pour chaque catégorie et mise à 0 si pas d'habitudes
+    categories.forEach(category => {
+      if (!habitCount[category.toLowerCase()]) {
+        habitCount[category.toLowerCase()] = 0;
+      }
+    });
+
+    return habitCount;
+  };
+
+
+  // Récupération des habitudes par catégorie
+  const habitsCountByCategory = getHabitsCountByCategory();
+
+  // Fonction pour obtenir l'icône de la catégorie
+  const getHabitIcon = (category: string) => {
+    switch (category.toLowerCase()) {
+      case 'nutrition': return <Droplets size={20} color={COLORS.primary} />;
+      case 'mindfulness': return <Brain size={20} color={COLORS.secondary} />;
+      case 'learning': return <BookOpen size={20} color="#C5A3FF" />;
+      case 'fitness': return <Dumbbell size={20} color="#F8B195" />;
+      case 'productivity': return <Briefcase size={20} color={COLORS.accent} />;
+      default: return <Droplets size={20} color="#A0A0A0" />;
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -129,6 +164,18 @@ const ProgressScreen = () => {
             );
           })}
         </View>
+
+        <View style={styles.categoryContainer}>
+          {categories.map(category => (
+            <View key={category} style={styles.categoryRow}>
+              {getHabitIcon(category)}
+              <Text style={styles.categoryText}>
+                {category.charAt(0).toUpperCase() + category.slice(1)}: {habitsCountByCategory[category.toLowerCase()]}
+              </Text>
+            </View>
+          ))}
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -163,7 +210,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 6,
   },
-  dayText: { color: '#000', fontSize: 14, fontWeight: 'bold' }
+  dayText: { color: '#000', fontSize: 14, fontWeight: 'bold' },
+  categoryContainer: { marginTop: 24, padding: 16 },
+  categoryRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  categoryText: { fontSize: 16, marginLeft: 8, fontWeight: '500' },
 });
 
 export default ProgressScreen;
